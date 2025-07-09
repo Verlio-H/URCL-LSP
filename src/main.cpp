@@ -2,11 +2,14 @@
 #include <lsp/connection.h>
 #include <lsp/io/standardio.h>
 #include <lsp/messagehandler.h>
+#include <lsp/types.h>
+
+#include <stdio.h>
+#include <string.h>
 
 #include "urcl/source.h"
 #include "urcl/config.h"
 
-#include <lsp/types.h>
 
 std::vector<std::string> splitString(std::string &str) {
     std::vector<std::string> result{};
@@ -20,22 +23,29 @@ std::vector<std::string> splitString(std::string &str) {
     return result;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     lsp::Connection connection = lsp::Connection(lsp::io::standardIO());
     lsp::MessageHandler messageHandler = lsp::MessageHandler(connection);
     std::unordered_map<std::filesystem::path, urcl::source> code;
     std::unordered_map<std::filesystem::path, urcl::config> config;
     std::unordered_map<std::filesystem::path, std::vector<std::string>> documents;
 
+    const char *escaped = "escape";
+    for (int i = 1; i < argc; ++i) {
+        if (!strcmp(argv[i], "--no-escape")) {
+            escaped = "string";
+        }
+    }
+
     messageHandler.add<lsp::requests::Initialize>(
-        [](lsp::requests::Initialize::Params&& params) {
+        [escaped](lsp::requests::Initialize::Params&& params) {
             return lsp::requests::Initialize::Result{
                 .capabilities = {
                     .positionEncoding = lsp::PositionEncodingKind::UTF16,
                     .textDocumentSync = lsp::TextDocumentSyncOptions(true, lsp::TextDocumentSyncKind::Full, true),
                     .definitionProvider = true,
                     .foldingRangeProvider = true,
-                    .semanticTokensProvider = lsp::SemanticTokensOptions(false, {{"keyword", "variable", "number", "function", "comment", "class", "operator", "macro", "string", "escape", "operator", "namespace"}, {}}, false, true)
+                    .semanticTokensProvider = lsp::SemanticTokensOptions(false, {{"keyword", "variable", "number", "function", "comment", "class", "operator", "macro", "string", escaped, "operator", "namespace"}, {}}, false, true)
                 },
                 .serverInfo = lsp::InitializeResultServerInfo{
                     .name    = "URCL Language Server",

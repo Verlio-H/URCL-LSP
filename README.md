@@ -66,6 +66,6 @@ An include line consists of a number of relative paths separated by spaces. Spac
 
 ## Notes
 
-In addition to the base set of tokens, this language server also defines an "escaped" token type. This token corresponds to characters in escape sequences (including the leading backslash).
+In addition to the base set of tokens, this language server also defines "escape" which corresponds to characters in escape sequences (including the leading backslash). This functionality can be disabled by passing the --no-escape command line option.
 
 This language server should have no issue with most usages of unicode characters; however, there may be errors when using features like compound emojis.
