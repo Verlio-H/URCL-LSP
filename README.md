@@ -23,7 +23,7 @@ A server side implementation of the Language Server Protocol for the URCL progra
 
 ## Dependencies
 
-This language server relies upon the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework).
+This language server dependons on the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework).
 
 Consequently, a c++20 compiler is required.
 
@@ -32,7 +32,10 @@ To find custom configuration files, URCL LSP searches from the current file loca
 
 Thus, global configuration can be controlled via a lsp.txt file in the root directory.
 
-A configuration file contains two types of lines.
+When a file is saved, the configuration is reloaded.
+
+A configuration file contains two types of lines. Lines may have leading or trailing whitespace. Lines starting with `#` are ignored.
+
 
 #### Feature Line
 A feature line allows one to enable or disable a language feature. These lines start with either a `-` or a `+`. Using a `-` will disable the feature and using a `+` will enable the feature.
@@ -59,10 +62,10 @@ An include line specifies a group of urcl files that will be linked together at 
 
 If no valid include line is found, the language server will treat the file as a standalone file.
 
-An include line consists of a number of relative paths separated by spaces. Spaces within paths may be escaped.
+An include line consists of a number of relative paths separated by spaces. Spaces within paths may be escaped using backslash.
 
 ## Notes
 
-In addition to the base set of tokens, this language server also defines "escaped" which corresponds to characters in escape sequences (including the leading backslash).
+In addition to the base set of tokens, this language server also defines an "escaped" token type. This token corresponds to characters in escape sequences (including the leading backslash).
 
 This language server should have no issue with most usages of unicode characters; however, there may be errors when using features like compound emojis.
