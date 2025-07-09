@@ -23,7 +23,7 @@ A server side implementation of the Language Server Protocol for the URCL progra
 
 ## Dependencies
 
-This language server dependons on the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework).
+This language server depends on the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework).
 
 Consequently, a c++20 compiler is required.
 
