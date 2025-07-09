@@ -64,7 +64,7 @@ int main() {
     ).add<lsp::notifications::TextDocument_WillSave>(
         [&code, &config, &documents, &messageHandler](lsp::notifications::TextDocument_WillSave::Params&& params) {
             std::filesystem::path str = params.textDocument.uri.path();
-            config.emplace(str, str);
+            config[str] = str;
 
             code[str] = urcl::source(documents[str], config[str]);
             code[str].updateReferences(code, config[str]);
