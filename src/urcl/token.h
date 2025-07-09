@@ -9,7 +9,7 @@ namespace urcl {
             enum types_t {
                 instruction,
                 macro,
-                name, //
+                name,
                 symbol,
                 label,
                 relative,
@@ -27,7 +27,7 @@ namespace urcl {
                 port
             } type;
             std::string original;
-            std::string strVal; //instruction, header, macro, string, constant
+            std::string strVal;
             union values {
                 long double real;
                 int64_t literal;
