@@ -23,9 +23,15 @@ A server side implementation of the Language Server Protocol for the URCL progra
 
 ## Building
 
-This project uses cmake for compiling and installation.
+This project uses cmake for compilation and installation.
 
-`cmake -S . -B build && sudo cmake --install build`
+To build:
+`cmake -S . -B build && cmake --build build --parallel`
+
+To install:
+`cmake --install build` 
+
+Installation requires elevated permissions (use sudo or on windows run the command prompt as administrator).
 
 ## Dependencies
 
