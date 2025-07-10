@@ -13,6 +13,7 @@ namespace urcl {
             bool useIris;
             bool useUrcx;
             bool useStandard;
+            bool useLowercase;
             std::vector<std::filesystem::path> includes;
 
             config(std::filesystem::path file);

@@ -27,4 +27,8 @@ std::string trim(const std::string& str);
 
 void replaceAll(std::string& str, const std::string& from, const std::string& to);
 
+std::string strToLower(std::string data);
+
+std::string strToUpper(std::string data);
+
 #endif

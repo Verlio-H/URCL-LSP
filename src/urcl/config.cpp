@@ -42,6 +42,8 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
                 } else if (value == "irix") {
                     useUrcx = set;
                     useIris = set;
+                } else if (value == "lowercase") {
+                    useLowercase = set;
                 }
                 break;
             }
@@ -99,6 +101,7 @@ urcl::config::config(const std::filesystem::path file) {
             this->useStandard = trueConfig.useStandard;
             this->useIris = trueConfig.useIris;
             this->useUrcx = trueConfig.useUrcx;
+            this->useLowercase = trueConfig.useLowercase;
             this->includes = std::move(trueConfig.includes);
             return;
         }

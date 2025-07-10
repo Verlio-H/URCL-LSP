@@ -75,3 +75,13 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
         start_pos += to.length();
     }
 }
+
+std::string strToLower(std::string data) {
+    std::transform(data.begin(), data.end(), data.begin(), tolower);
+    return data;
+}
+
+std::string strToUpper(std::string data) {
+    std::transform(data.begin(), data.end(), data.begin(), toupper);
+    return data;
+}

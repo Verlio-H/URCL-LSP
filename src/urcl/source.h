@@ -25,7 +25,7 @@ namespace urcl {
             std::optional<lsp::Location> getDefinitionRange(const lsp::Position position, std::filesystem::path file) const;
             std::optional<lsp::Range> getTokenRange(const lsp::Position position) const;
             std::vector<lsp::FoldingRange> getFoldingRanges() const;
-            std::vector<lsp::CompletionItem> getCompletion(const lsp::Position position) const;
+            std::vector<lsp::CompletionItem> getCompletion(const lsp::Position& position, const urcl::config& config) const;
         private:
             std::vector<std::vector<token>> code;
             std::unordered_map<std::string, std::pair<int, uint32_t>> labelDefs;
@@ -46,7 +46,7 @@ namespace urcl {
 
             std::vector<token> parseLine(const std::string& line, bool& inComment, const urcl::config& config) const;
             int resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
-            
+
             void updateDefinitions(urcl::source& code, const std::filesystem::path& loc, bool base);
     };
 }

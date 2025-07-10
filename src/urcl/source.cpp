@@ -178,8 +178,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
             if (token.parse_error != "") continue;
 
             if (operand == 1 && inst == "@DEFINE") {
-                std::string copy = token.original.substr(1);
-                std::transform(copy.begin(), copy.end(), copy.begin(), toupper);
+                std::string copy = strToUpper(token.original.substr(1));
                 if (this->constants.contains(copy)) {
                     token.parse_error = "Constant already defined by implementation";
                 }
@@ -204,8 +203,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         break;
                     }
                     case (urcl::token::constant): {
-                        std::string copy = token.original.substr(1);
-                        std::transform(copy.begin(), copy.end(), copy.begin(), toupper);
+                        std::string copy = strToUpper(token.original.substr(1));
                         if (this->constants.contains(copy)) break;
                     }
                     case (urcl::token::name): {
@@ -279,8 +277,7 @@ std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Positio
             return {{lsp::FileUri::fromPath(file.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + utf8len(code[line][newToken].original.c_str()))}}}};
         }
         case (urcl::token::constant): {
-            std::string copy = token.original.substr(1);
-            std::transform(copy.begin(), copy.end(), copy.begin(), toupper);
+            std::string copy = strToUpper(token.original.substr(1));
             if (constants.contains(copy)) return {};
         }
         case (urcl::token::name): {
@@ -764,8 +761,7 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
             }
             break;
         case (urcl::token::constant): {
-            std::string copy = token.original.substr(1);
-            std::transform(copy.begin(), copy.end(), copy.begin(), toupper);
+            std::string copy = strToUpper(token.original.substr(1));
             if (constants.contains(copy)) {
                 tokenType = 7;
                 break;
@@ -799,7 +795,7 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
     return tokenType;
 }
 
-std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position position) const {
+std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position& position, const urcl::config& config) const {
     unsigned int row = position.line;
     unsigned int column = position.character - 1;
     int idx = columnToIdx(code[row], column);
@@ -861,7 +857,11 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             if (token.original[0] == '@') {
                 for (const std::string& constant : constants) {
                     if (constant.starts_with(token.original.substr(1))) {
-                        result.emplace_back(constant);
+                        if (config.useLowercase) {
+                            result.emplace_back(strToLower(constant));
+                        } else {
+                            result.emplace_back(constant);
+                        }
                     }
                 }
             }
@@ -881,14 +881,22 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             if (code[row][idx].type == urcl::token::macro) {
                 for (const std::string& mode : urcl::defines::DEBUG_MODES) {
                     if (mode.starts_with(token.strVal)) {
-                        result.emplace_back(mode);
+                        if (config.useLowercase) {
+                            result.emplace_back(strToLower(mode));
+                        } else {
+                            result.emplace_back(mode);
+                        }
                     }
                 }
                 break;
             }
             for (const std::string& inst : instructions) {
                 if (inst.starts_with(token.strVal)) {
-                    result.emplace_back(inst);
+                    if (config.useLowercase) {
+                        result.emplace_back(strToLower(inst));
+                    } else {
+                        result.emplace_back(inst);
+                    }
                 }
             }
             break;
@@ -896,7 +904,11 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
         case (urcl::token::macro): {
             for (const std::string& macro : macros) {
                 if (macro.starts_with(token.strVal)) {
-                    result.emplace_back(macro.substr(1));
+                    if (config.useLowercase) {
+                        result.emplace_back(strToLower(macro.substr(1)));
+                    } else {
+                        result.emplace_back(macro.substr(1));
+                    }
                 }
             }
             break;
@@ -904,7 +916,11 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
         case (urcl::token::port): {
             for (const std::string& port : ports) {
                 if (port.starts_with(token.strVal.substr(1))) {
-                    result.emplace_back(port);
+                    if (config.useLowercase) {
+                        result.emplace_back(strToLower(port));
+                    } else {
+                        result.emplace_back(port);
+                    }
                 }
             }
             break;

@@ -129,10 +129,10 @@ int main(int argc, char *argv[]) {
             return lsp::requests::TextDocument_FoldingRange::Result{code[str].getFoldingRanges()};
         }
     ).add<lsp::requests::TextDocument_Completion>(
-        [&code](lsp::requests::TextDocument_Completion::Params&& params) {
+        [&code, &config](lsp::requests::TextDocument_Completion::Params&& params) {
             std::filesystem::path str = params.textDocument.uri.path();
 
-            std::vector<lsp::CompletionItem> result = code[str].getCompletion(params.position);
+            std::vector<lsp::CompletionItem> result = code[str].getCompletion(params.position, config[str]);
             return lsp::requests::TextDocument_Completion::Result{result};
         }
     );
