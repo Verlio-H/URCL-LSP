@@ -36,8 +36,11 @@ namespace urcl::defines {
     };
 
     const std::unordered_set<std::string> URCX_INSTRUCTIONS = {
-        "__ASSERT", "__ASSERT0", "__ASSERT_EQ", "__ASSERT_NEQ", // assert
-        "HSAV", "HRSR" // iris save stack
+        "__ASSERT", "__ASSERT0", "__ASSERT_EQ", "__ASSERT_NEQ"
+    };
+
+    const std::unordered_set<std::string> IRIX_INSTRUCTIONS = {
+        "HSAV", "HRSR"
     };
 
     const std::unordered_set<std::string> URCX_MACROS = {

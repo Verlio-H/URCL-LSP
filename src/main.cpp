@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
                 .capabilities = {
                     .positionEncoding = lsp::PositionEncodingKind::UTF16,
                     .textDocumentSync = lsp::TextDocumentSyncOptions(true, lsp::TextDocumentSyncKind::Full, true),
+                    .completionProvider = lsp::CompletionOptions{true, {{".", "@", "!", "%"}}},
                     .definitionProvider = true,
                     .foldingRangeProvider = true,
                     .semanticTokensProvider = lsp::SemanticTokensOptions(false, {{"keyword", "variable", "number", "function", "comment", "class", "operator", "macro", "string", escaped, "operator", "namespace"}, {}}, false, true)
@@ -126,6 +127,13 @@ int main(int argc, char *argv[]) {
         [&code](lsp::requests::TextDocument_FoldingRange::Params&& params) {
             std::filesystem::path str = params.textDocument.uri.path();
             return lsp::requests::TextDocument_FoldingRange::Result{code[str].getFoldingRanges()};
+        }
+    ).add<lsp::requests::TextDocument_Completion>(
+        [&code](lsp::requests::TextDocument_Completion::Params&& params) {
+            std::filesystem::path str = params.textDocument.uri.path();
+
+            std::vector<lsp::CompletionItem> result = code[str].getCompletion(params.position);
+            return lsp::requests::TextDocument_Completion::Result{result};
         }
     );
     

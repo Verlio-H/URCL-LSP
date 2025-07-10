@@ -4,10 +4,6 @@
 
 #include <fstream>
 
-std::unordered_set<std::string> instructions{};
-std::unordered_set<std::string> macros{};
-std::unordered_set<std::string> ports{};
-
 urcl::source::source() {}
 
 urcl::source::source(const std::vector<std::string>& source, const urcl::config& config) {
@@ -48,6 +44,9 @@ urcl::source::source(const std::vector<std::string>& source, const urcl::config&
     }
     if (config.useUrcx) {
         instructions.insert(urcl::defines::URCX_INSTRUCTIONS.begin(), urcl::defines::URCX_INSTRUCTIONS.end());
+    }
+    if (config.useUrcx && config.useIris) {
+        instructions.insert(urcl::defines::IRIX_INSTRUCTIONS.begin(), urcl::defines::IRIX_INSTRUCTIONS.end());
     }
 
     bool inComment = false;
@@ -388,7 +387,7 @@ unsigned int urcl::source::idxToColumn(const std::vector<urcl::token>& line, uns
     return column;
 }
 
-std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& inComment, const urcl::config& config) {
+std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& inComment, const urcl::config& config) const {
     bool inChar = false;
     bool inStr = false;
     std::string name;
@@ -800,4 +799,119 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
     return tokenType;
 }
 
+std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position position) const {
+    unsigned int row = position.line;
+    unsigned int column = position.character - 1;
+    int idx = columnToIdx(code[row], column);
+    std::vector<lsp::CompletionItem> result;
+    if (idx < 0) return result;
+    const urcl::token& token = code[row][idx];
+    switch (token.type) {
+        case (urcl::token::label): {
+            int opIdx;
+            for (opIdx = 0; opIdx < idx; ++opIdx) {
+                if (code[row][opIdx].type == urcl::token::comment) continue;
+                break;
+            }
+            if (opIdx == idx) break; // No prior operand exists, thus it is a definition;
 
+            // Iterate over source to find the current subobject id
+            int nextObjId = 1;
+            int currentObjId = 0;
+            for (int i = 0; i <= row; ++i) {
+                const std::vector<urcl::token>& line = this->code[i];
+                for (const urcl::token& token : line) {
+                    if (token.type == urcl::token::comment) continue;
+                    if (token.type == urcl::token::symbol) {
+                        if (currentObjId == 0 && token.original.length() >= 3 && token.original.starts_with("!!!")) {
+                            currentObjId = nextObjId++;
+                        } else if (currentObjId != 0 && token.original.length() >= 2 && token.original.starts_with("!!")) {
+                            currentObjId = 0;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            for (std::pair<std::string, std::pair<int, uint32_t>> label : labelDefs) {
+                if (label.second.first == currentObjId && label.first.starts_with(token.original)) {
+                    result.emplace_back(label.first.substr(1));
+                }
+            }
+            break;
+        }
+        case (urcl::token::symbol): {
+            int opIdx;
+            for (opIdx = 0; opIdx < idx; ++opIdx) {
+                if (code[row][opIdx].type == urcl::token::comment) continue;
+                break;
+            }
+            if (opIdx == idx) break; // No prior operand exists, thus it is a definition;
+
+            for (std::pair<std::string, std::pair<std::filesystem::path, uint32_t>> symbol : symbolDefs) {
+                if (symbol.first.starts_with("!!")) continue;
+                if (symbol.first.starts_with(token.original)) {
+                    result.emplace_back(symbol.first.substr(1));
+                }
+            }
+            break;
+        }
+        case (urcl::token::name):
+        case (urcl::token::constant): {
+            if (token.original[0] == '@') {
+                for (const std::string& constant : constants) {
+                    if (constant.starts_with(token.original.substr(1))) {
+                        result.emplace_back(constant);
+                    }
+                }
+            }
+            fprintf(stderr, "const %s\n", token.original.c_str());
+            for (const std::pair<std::string, std::pair<std::filesystem::path, uint32_t>>& def : definesDefs) {
+                fprintf(stderr, "%s %d\n", def.first.c_str(), def.first.starts_with(token.original));
+                if (def.first.starts_with(token.original)) {
+                    result.emplace_back(def.first);
+                }
+            }
+            break;
+        }
+        case (urcl::token::instruction): {
+            do {
+                --idx;
+            } while (idx > 0 && code[row][idx].type != urcl::token::macro);
+            if (code[row][idx].type == urcl::token::macro) {
+                for (const std::string& mode : urcl::defines::DEBUG_MODES) {
+                    if (mode.starts_with(token.strVal)) {
+                        result.emplace_back(mode);
+                    }
+                }
+                break;
+            }
+            for (const std::string& inst : instructions) {
+                if (inst.starts_with(token.strVal)) {
+                    result.emplace_back(inst);
+                }
+            }
+            break;
+        }
+        case (urcl::token::macro): {
+            for (const std::string& macro : macros) {
+                if (macro.starts_with(token.strVal)) {
+                    result.emplace_back(macro.substr(1));
+                }
+            }
+            break;
+        }
+        case (urcl::token::port): {
+            for (const std::string& port : ports) {
+                if (port.starts_with(token.strVal.substr(1))) {
+                    result.emplace_back(port);
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    if (result.empty()) result.emplace_back("");
+    return result;
+}
