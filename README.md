@@ -21,9 +21,15 @@ A server side implementation of the Language Server Protocol for the URCL progra
 * Hovers
 * References
 
+## Building
+
+This project uses cmake for compiling and installation.
+
+`cmake -S . -B build && sudo cmake --install build`
+
 ## Dependencies
 
-This language server depends on the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework).
+This language server depends on the c++20 lsp-framework (https://github.com/leon-bckl/lsp-framework). (automatically installed when using cmake)
 
 Consequently, a c++20 compiler is required.
 
