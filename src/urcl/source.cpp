@@ -83,8 +83,8 @@ void urcl::source::updateDefinitions(const std::filesystem::path& loc) {
 }
 
 void urcl::source::updateDefinitions(urcl::source& code, const std::filesystem::path& loc, bool base) {
-    int nextObjId = 1;
-    int currentObjId = 0;
+    urcl::object_id nextObjId = 1;
+    urcl::object_id currentObjId = 0;
     urcl::source& source = *this;
     for (int i = 0; i < code.code.size(); ++i) {
         std::vector<urcl::token>& line = code.code[i];
@@ -105,13 +105,13 @@ void urcl::source::updateDefinitions(urcl::source& code, const std::filesystem::
                 case (urcl::token::symbol):
                     exit = true;
                     if (token.original.length() >= 3 && token.original.substr(0, 3) == "!!!") {
-                        source.objectDefs.emplace_back(i, true);
+                        source.objectDefs.emplace_back(urcl::sub_object::open, i);
                         if (currentObjId != 0) {
                             token.parse_error = "Opened sub-object while already within one";
                         }
                         currentObjId = nextObjId++;
                     } else if (token.original.length() >= 2 && token.original.substr(0, 2) == "!!") {
-                        source.objectDefs.emplace_back(i, false);
+                        source.objectDefs.emplace_back(urcl::sub_object::close, i);
                         if (currentObjId == 0) {
                             token.parse_error = "Closed sub-object without opening one";
                         }
@@ -154,8 +154,8 @@ void urcl::source::updateErrors(const urcl::config& config) {
     }
     this->constants = std::move(constants);
 
-    int nextObjId = 1;
-    int currentObjId = 0;
+    urcl::object_id nextObjId = 1;
+    urcl::object_id currentObjId = 0;
     for (std::vector<urcl::token>& line : code) {
         bool expect = true;
         int operand = -1;
@@ -178,7 +178,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
             if (token.parse_error != "") continue;
 
             if (operand == 1 && inst == "@DEFINE") {
-                std::string copy = strToUpper(token.original.substr(1));
+                std::string copy = util::strToUpper(token.original.substr(1));
                 if (this->constants.contains(copy)) {
                     token.parse_error = "Constant already defined by implementation";
                 }
@@ -203,7 +203,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         break;
                     }
                     case (urcl::token::constant): {
-                        std::string copy = strToUpper(token.original.substr(1));
+                        std::string copy = util::strToUpper(token.original.substr(1));
                         if (this->constants.contains(copy)) break;
                     }
                     case (urcl::token::name): {
@@ -232,11 +232,11 @@ std::vector<unsigned int> urcl::source::getTokens() const {
             //result.reserve(5);
             result.push_back(i - prevLine);
             result.push_back(token.column - lengthDiff - prevChar);
-            result.push_back(utf8len(token.original.c_str()));
+            result.push_back(util::utf8len(token.original.c_str()));
             result.push_back(tokenType);
             result.push_back(0);
             prevChar = token.column;
-            lengthDiff = token.original.length() - utf8len(token.original.c_str());
+            lengthDiff = token.original.length() - util::utf8len(token.original.c_str());
             prevLine = i;
         }
     }
@@ -260,7 +260,7 @@ std::vector<lsp::Diagnostic> urcl::source::getDiagnostics() const {
     return result;
 }
 
-std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Position position, std::filesystem::path file) const {
+std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Position& position, std::filesystem::path file) const {
     unsigned int row = position.line;
     unsigned int column = position.character;
     int idx = columnToIdx(code[row], column);
@@ -270,19 +270,19 @@ std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Positio
     switch (token.type) {
         case (urcl::token::label): {
             if (!labelDefs.contains(token.original)) return {};
-            unsigned int line = labelDefs.at(token.original).second;
+            urcl::line_number line = labelDefs.at(token.original).second;
             int newToken = iFindNthOperand(code[line], 0);
             if (newToken < 0) return {};
             unsigned int newColumn = idxToColumn(code[line], newToken);
-            return {{lsp::FileUri::fromPath(file.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + utf8len(code[line][newToken].original.c_str()))}}}};
+            return {{lsp::FileUri::fromPath(file.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + util::utf8len(code[line][newToken].original.c_str()))}}}};
         }
         case (urcl::token::constant): {
-            std::string copy = strToUpper(token.original.substr(1));
+            std::string copy = util::strToUpper(token.original.substr(1));
             if (constants.contains(copy)) return {};
         }
         case (urcl::token::name): {
             if (!definesDefs.contains(token.original)) return {};
-            unsigned int line = definesDefs.at(token.original).second;
+            urcl::line_number line = definesDefs.at(token.original).second;
             std::filesystem::path newFile = definesDefs.at(token.original).first;
             const urcl::source* newSrc;
             if (includes.contains(newFile)) {
@@ -293,11 +293,11 @@ std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Positio
             int newToken = iFindNthOperand(newSrc->code[line], 1);
             if (newToken < 0) return {};
             unsigned int newColumn = idxToColumn(newSrc->code[line], newToken);
-            return {{lsp::FileUri::fromPath(newFile.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + utf8len(newSrc->code[line][newToken].original.c_str()))}}}};
+            return {{lsp::FileUri::fromPath(newFile.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + util::utf8len(newSrc->code[line][newToken].original.c_str()))}}}};
         }
         case (urcl::token::symbol): {
             if (!symbolDefs.contains(token.original)) return {};
-            unsigned int line = symbolDefs.at(token.original).second;
+            urcl::line_number line = symbolDefs.at(token.original).second;
             std::filesystem::path newFile = symbolDefs.at(token.original).first;
             const urcl::source* newSrc;
             if (includes.contains(newFile)) {
@@ -308,14 +308,14 @@ std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Positio
             int newToken = iFindNthOperand(newSrc->code[line], 0);
             if (newToken < 0) return {};
             unsigned int newColumn = idxToColumn(newSrc->code[line], newToken);
-            return {{lsp::FileUri::fromPath(newFile.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + utf8len(newSrc->code[line][newToken].original.c_str()))}}}};
+            return {{lsp::FileUri::fromPath(newFile.string()), {{line, newColumn}, {line, static_cast<uint>(newColumn + util::utf8len(newSrc->code[line][newToken].original.c_str()))}}}};
         }
         default:
             return {};
     }
 }
 
-std::optional<lsp::Range> urcl::source::getTokenRange(const lsp::Position position) const {
+std::optional<lsp::Range> urcl::source::getTokenRange(const lsp::Position& position) const {
     unsigned int row = position.line;
     unsigned int column = position.character;
     int idx = columnToIdx(code[row], column);
@@ -323,20 +323,20 @@ std::optional<lsp::Range> urcl::source::getTokenRange(const lsp::Position positi
     lsp::Range result;
     const urcl::token& token = code[row][idx];
     unsigned int newColumn = idxToColumn(code[row], idx);
-    return {{{row, newColumn}, {row, static_cast<uint>(newColumn + utf8len(token.original.c_str()))}}};
+    return {{{row, newColumn}, {row, static_cast<uint>(newColumn + util::utf8len(token.original.c_str()))}}};
 };
 
 std::vector<lsp::FoldingRange> urcl::source::getFoldingRanges() const {
     bool inRange = false;
     unsigned int start;
     std::vector<lsp::FoldingRange> result{};
-    for (std::pair<unsigned int, bool> delimiter : objectDefs) {
-        if (!inRange && delimiter.second) { // open
+    for (std::pair<urcl::sub_object, urcl::line_number> delimiter : objectDefs) {
+        if (!inRange && delimiter.first == urcl::sub_object::open) {
             inRange = true;
-            start = delimiter.first;
-        } else if (inRange && !delimiter.second) { // close
+            start = delimiter.second;
+        } else if (inRange && delimiter.first == urcl::sub_object::close) {
             inRange = false;
-            result.emplace_back(start, delimiter.first);
+            result.emplace_back(start, delimiter.second);
         }
     }
     return result;
@@ -365,7 +365,7 @@ int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int
     unsigned int col = 0;
     int i;
     for (i = 0; i < line.size(); ++i) {
-        col += utf8len(line[i].original.c_str());
+        col += util::utf8len(line[i].original.c_str());
         if (i < line.size() - 1) {
             col += line[i + 1].column - line[i].column - line[i].original.length(); // whitespace
         }
@@ -378,7 +378,7 @@ int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int
 unsigned int urcl::source::idxToColumn(const std::vector<urcl::token>& line, unsigned int idx) {
     unsigned int column = 0;
     for (int i = 0; i < idx; ++i) {
-        column += utf8len(line[i].original.c_str());
+        column += util::utf8len(line[i].original.c_str());
         column += line[i + 1].column - line[i].column - line[i].original.length(); // whitespace
     }
     return column;
@@ -414,7 +414,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             inComment = false;
             continue;
         }
-        if ((i == line.size() || isWhitespace(line[i])) || (inConstruct && (line[i] == '/' || line[i] == ']' || line[i] == '%'))) {
+        if ((i == line.size() || util::isWhitespace(line[i])) || (inConstruct && (line[i] == '/' || line[i] == ']' || line[i] == '%'))) {
             if (!inConstruct) continue;
             if (inChar || inStr) {
                 name = name + line[i];
@@ -452,7 +452,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     case (urcl::token::port): {
                         if (!config.useStandard && !config.useUrcx && !config.useIris) break;
                         name.erase(0, 1);
-                        if (isNumber(name)) {
+                        if (util::isNumber(name)) {
                             int portNumb = std::stoi(name);
                             if (portNumb > 63 || portNumb < 0) {
                                 result.back().parse_error = "Invalid port number: " + name;
@@ -491,7 +491,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                         } else {
                             name.erase(0, 2);
                         }
-                        if (isNumber(name)) {
+                        if (util::isNumber(name)) {
                             int32_t offset = std::stoi(name);
                             result.back().value.relative = offset;
                         } else {
@@ -527,17 +527,17 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
                         bool valid;
                         if (base == 2) {
-                            valid = isBinary(name);
+                            valid = util::isBinary(name);
                         } else if (base == 8) {
-                            valid = isOctal(name);
+                            valid = util::isOctal(name);
                         } else if (base == 16) {
-                            valid = isHex(name);
+                            valid = util::isHex(name);
                         } else {
                             if (name.find('.') == std::string::npos) {
-                                valid = isNumber(name);
+                                valid = util::isNumber(name);
                             } else {
                                 
-                                valid = isFloat(name);
+                                valid = util::isFloat(name);
                                 if (valid) {
                                     long double value = std::stold(name);
                                     result.back().value.real = value * sign;
@@ -567,7 +567,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     case (urcl::token::reg): {
 
                         name.erase(0, 1);
-                        if (isNumber(name)) {
+                        if (util::isNumber(name)) {
                             uint32_t value = std::stoi(name);
                             result.back().value.reg = value;
                         } else {
@@ -761,7 +761,7 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
             }
             break;
         case (urcl::token::constant): {
-            std::string copy = strToUpper(token.original.substr(1));
+            std::string copy = util::strToUpper(token.original.substr(1));
             if (constants.contains(copy)) {
                 tokenType = 7;
                 break;
@@ -812,8 +812,8 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             if (opIdx == idx) break; // No prior operand exists, thus it is a definition;
 
             // Iterate over source to find the current subobject id
-            int nextObjId = 1;
-            int currentObjId = 0;
+            urcl::object_id nextObjId = 1;
+            urcl::object_id currentObjId = 0;
             for (int i = 0; i <= row; ++i) {
                 const std::vector<urcl::token>& line = this->code[i];
                 for (const urcl::token& token : line) {
@@ -829,7 +829,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                 }
             }
 
-            for (std::pair<std::string, std::pair<int, uint32_t>> label : labelDefs) {
+            for (std::pair<std::string, std::pair<urcl::object_id, urcl::line_number>> label : labelDefs) {
                 if (label.second.first == currentObjId && label.first.starts_with(token.original)) {
                     result.emplace_back(label.first.substr(1));
                 }
@@ -844,7 +844,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             }
             if (opIdx == idx) break; // No prior operand exists, thus it is a definition;
 
-            for (std::pair<std::string, std::pair<std::filesystem::path, uint32_t>> symbol : symbolDefs) {
+            for (std::pair<std::string, std::pair<std::filesystem::path, urcl::line_number>> symbol : symbolDefs) {
                 if (symbol.first.starts_with("!!")) continue;
                 if (symbol.first.starts_with(token.original)) {
                     result.emplace_back(symbol.first.substr(1));
@@ -858,7 +858,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                 for (const std::string& constant : constants) {
                     if (constant.starts_with(token.original.substr(1))) {
                         if (config.useLowercase) {
-                            result.emplace_back(strToLower(constant));
+                            result.emplace_back(util::strToLower(constant));
                         } else {
                             result.emplace_back(constant);
                         }
@@ -866,7 +866,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                 }
             }
             fprintf(stderr, "const %s\n", token.original.c_str());
-            for (const std::pair<std::string, std::pair<std::filesystem::path, uint32_t>>& def : definesDefs) {
+            for (const std::pair<std::string, std::pair<std::filesystem::path, urcl::line_number>>& def : definesDefs) {
                 fprintf(stderr, "%s %d\n", def.first.c_str(), def.first.starts_with(token.original));
                 if (def.first.starts_with(token.original)) {
                     result.emplace_back(def.first);
@@ -882,7 +882,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                 for (const std::string& mode : urcl::defines::DEBUG_MODES) {
                     if (mode.starts_with(token.strVal)) {
                         if (config.useLowercase) {
-                            result.emplace_back(strToLower(mode));
+                            result.emplace_back(util::strToLower(mode));
                         } else {
                             result.emplace_back(mode);
                         }
@@ -893,7 +893,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             for (const std::string& inst : instructions) {
                 if (inst.starts_with(token.strVal)) {
                     if (config.useLowercase) {
-                        result.emplace_back(strToLower(inst));
+                        result.emplace_back(util::strToLower(inst));
                     } else {
                         result.emplace_back(inst);
                     }
@@ -905,7 +905,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             for (const std::string& macro : macros) {
                 if (macro.starts_with(token.strVal)) {
                     if (config.useLowercase) {
-                        result.emplace_back(strToLower(macro.substr(1)));
+                        result.emplace_back(util::strToLower(macro.substr(1)));
                     } else {
                         result.emplace_back(macro.substr(1));
                     }
@@ -917,7 +917,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             for (const std::string& port : ports) {
                 if (port.starts_with(token.strVal.substr(1))) {
                     if (config.useLowercase) {
-                        result.emplace_back(strToLower(port));
+                        result.emplace_back(util::strToLower(port));
                     } else {
                         result.emplace_back(port);
                     }

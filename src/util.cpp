@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string>
 
-size_t utf8len(const char* str) {
+size_t util::utf8len(const char* str) {
     size_t len = 0;
     for (size_t i = 0; *str != 0; ++len) {
         int v01 = ((*str & 0x80) >> 7) & ((*str & 0x40) >> 6);
@@ -15,48 +15,48 @@ size_t utf8len(const char* str) {
     return len;
 }
 
-bool isWhitespace(char character) {
+bool util::isWhitespace(char character) {
     return character == ' ' || character == '\t' || character == '\r';
 }
 
-bool isodigit(char c) {
+bool util::isodigit(char c) {
     return (c >= '0' && c <= '7');
 }
 
-bool isbdigit(char c) {
+bool util::isbdigit(char c) {
     return c == '0' || c == '1';
 }
 
-bool isfdigit(char c) {
+bool util::isfdigit(char c) {
     return isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+';
 }
 
-bool isNumber(const std::string& s) {
+bool util::isNumber(const std::string& s) {
     return !s.empty() && std::all_of(s.begin(), s.end(), isdigit);
 }
 
-bool isOctal(const std::string& s) {
-    return !s.empty() && std::all_of(s.begin(), s.end(), isodigit);
+bool util::isOctal(const std::string& s) {
+    return !s.empty() && std::all_of(s.begin(), s.end(), util::isodigit);
 }
 
-bool isBinary(const std::string& s) {
-    return !s.empty() && std::all_of(s.begin(), s.end(), isbdigit);
+bool util::isBinary(const std::string& s) {
+    return !s.empty() && std::all_of(s.begin(), s.end(), util::isbdigit);
 }
 
-bool isHex(const std::string& s) {
+bool util::isHex(const std::string& s) {
     return !s.empty() && std::all_of(s.begin(), s.end(), isxdigit);
 }
 
-bool isFloat(const std::string& s) {
+bool util::isFloat(const std::string& s) {
     if (s.find('.') != s.rfind('.')) return false;
     if (s.find_first_of("eE") != s.find_last_of("eE")) return false;
     if (s.find_first_of("-+") != s.find_last_of("-+")) return false;
     if (s.find_first_of("-+") != std::string::npos && s.find_first_of("-+") != s.find_first_of("Ee") + 1) return false;
     if (s.find_first_of("eE") != std::string::npos && s.find('.') > s.find_first_of("eE")) return false;
-    return !s.empty() && std::all_of(s.begin(), s.end(), isfdigit);
+    return !s.empty() && std::all_of(s.begin(), s.end(), util::isfdigit);
 }
 
-std::string trim(const std::string& str) {
+std::string util::trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t");
 
     if (std::string::npos == first) {
@@ -68,7 +68,7 @@ std::string trim(const std::string& str) {
     return str.substr(first, (last - first + 1));
 }
 
-void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+void util::replaceAll(std::string& str, const std::string& from, const std::string& to) {
     size_t start_pos = 0;
     while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
         str.replace(start_pos, from.length(), to);
@@ -76,12 +76,12 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
     }
 }
 
-std::string strToLower(std::string data) {
+std::string util::strToLower(std::string data) {
     std::transform(data.begin(), data.end(), data.begin(), tolower);
     return data;
 }
 
-std::string strToUpper(std::string data) {
+std::string util::strToUpper(std::string data) {
     std::transform(data.begin(), data.end(), data.begin(), toupper);
     return data;
 }

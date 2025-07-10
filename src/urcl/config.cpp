@@ -16,7 +16,7 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
 
     while (std::getline(in, line)) {
 
-        line = trim(line);
+        line = util::trim(line);
 
         bool set = true;
         switch (line[0]) {
@@ -61,10 +61,10 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
                     }
                     std::string pathEnd;
                     pathEnd = line.substr(0, end);
-                    replaceAll(pathEnd, "\\ ", " ");
+                    util::replaceAll(pathEnd, "\\ ", " ");
 
                     if (end < line.length() - 1) {
-                        line = trim(line.substr(end + 1));
+                        line = util::trim(line.substr(end + 1));
                     } else {
                         line = "";
                     }

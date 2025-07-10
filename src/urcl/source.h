@@ -11,6 +11,14 @@
 #include <lsp/types.h>
 
 namespace urcl {
+    using line_number = unsigned int;
+    using object_id = unsigned int;
+
+    enum sub_object {
+        open,
+        close
+    };
+
     class source {
         public:
             source();
@@ -22,16 +30,16 @@ namespace urcl {
 
             std::vector<unsigned int> getTokens() const;
             std::vector<lsp::Diagnostic> getDiagnostics() const;
-            std::optional<lsp::Location> getDefinitionRange(const lsp::Position position, std::filesystem::path file) const;
-            std::optional<lsp::Range> getTokenRange(const lsp::Position position) const;
+            std::optional<lsp::Location> getDefinitionRange(const lsp::Position& position, std::filesystem::path file) const;
+            std::optional<lsp::Range> getTokenRange(const lsp::Position& position) const;
             std::vector<lsp::FoldingRange> getFoldingRanges() const;
             std::vector<lsp::CompletionItem> getCompletion(const lsp::Position& position, const urcl::config& config) const;
         private:
             std::vector<std::vector<token>> code;
-            std::unordered_map<std::string, std::pair<int, uint32_t>> labelDefs;
-            std::unordered_map<std::string, std::pair<std::filesystem::path, uint32_t>> definesDefs;
-            std::unordered_map<std::string, std::pair<std::filesystem::path, uint32_t>> symbolDefs;
-            std::vector<std::pair<uint32_t, bool>> objectDefs;
+            std::unordered_map<std::string, std::pair<urcl::object_id, urcl::line_number>> labelDefs;
+            std::unordered_map<std::string, std::pair<std::filesystem::path, urcl::line_number>> definesDefs;
+            std::unordered_map<std::string, std::pair<std::filesystem::path, urcl::line_number>> symbolDefs;
+            std::vector<std::pair<urcl::sub_object, urcl::line_number>> objectDefs;
             std::unordered_map<std::filesystem::path, source> includes;
             std::unordered_set<std::string> constants;
 
