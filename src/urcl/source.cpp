@@ -941,6 +941,7 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
     if (idx < 0) return {};
     const urcl::token& token = code[row][idx];
     switch (token.type) {
+        case (urcl::token::macro):
         case (urcl::token::instruction): {
             if (!urcl::defines::INST_INFO.contains(token.strVal)) return {};
             std::pair<urcl::defines::description, std::vector<urcl::defines::op_type>> info = urcl::defines::INST_INFO.at(token.strVal);

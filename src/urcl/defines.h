@@ -531,17 +531,17 @@ namespace urcl::defines {
             }
         },{
             "__ASSERT", {
-                "Assert (1 Operand) (urcx)\\\nSends an error message if Op1 zero",
+                "Assert (1 Operand) (urcx)\\\nSends an error message if Op1 is zero",
                 {op_type::val}
             }
         },{
             "__ASSERT0", {
-                "Assert Zero (1 Operand) (urcx)\\\nSends an error message if Op1 not zero",
+                "Assert Zero (1 Operand) (urcx)\\\nSends an error message if Op1 is not zero",
                 {op_type::val}
             }
         },{
             "__ASSERT_EQ", {
-                "Assert Equal (2 Operands) (urcx)\\\nSends an error message if Op1 and Op2 not equal",
+                "Assert Equal (2 Operands) (urcx)\\\nSends an error message if Op1 and Op2 are not equal",
                 {op_type::val, op_type::val}
             }
         },{
@@ -593,6 +593,46 @@ namespace urcl::defines {
             "ROM", {
                 "Read Only Memory (run mode)\\\nSpecifies that the program should be located in a space not writeable by the program",
                 {}
+            }
+        },{
+            "@DEFINE", {
+                "Define (2 Operands) (macro)\\\nDefines a new constant\\\nOp1 = Op2",
+                {op_type::imm, op_type::imm}
+            }
+        },{
+            "@DEBUG", {
+                "Debug (0/1/2 Operands) (macro) (urcx)\\\nPauses execution on certain conditions",
+                {}
+            }
+        },{
+            "@ASSERT", {
+                "Assert (1 Operand) (macro) (urcx)\\\nSends an error message if Op1 is zero",
+                {op_type::val}
+            }
+        },{
+            "@ASSERT0", {
+                "Assert Zero (1 Operand) (macro) (urcx)\\\nSends an error message if Op1 is not zero",
+                {op_type::val}
+            }
+        },{
+            "@ASSERT_EQ", {
+                "Assert Equal (2 Operands) (macro) (urcx)\\\nSends an error message if Op1 and Op2 are not equal",
+                {op_type::val, op_type::val}
+            }
+        },{
+            "@ASSERT_NEQ", {
+                "Assert Not Equal (2 Operands) (macro) (urcx)\\\nSends an error message if Op1 and Op2 are equal",
+                {op_type::val, op_type::val}
+            }
+        },{
+            "ONREAD", {
+                "On Read (debug mode) (urcx)\\\nPauses execution whenever the following operand is read from",
+                {op_type::val}
+            }
+        },{
+            "ONWRITE", {
+                "On Write (debug mode) (urcx)\\\nPauses execution whenever the following operand is written to",
+                {op_type::val}
             }
         }
     };
