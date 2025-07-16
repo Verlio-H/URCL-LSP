@@ -12,7 +12,9 @@ namespace urcl::defines {
         basicval,
         val,
         array,
-        port
+        port,
+        comparison,
+        inst
     };
 
     const std::unordered_set<std::string> HEADERS = {
@@ -556,6 +558,41 @@ namespace urcl::defines {
             "HRSR", {
                 "Hardware Restore (1 Operand) (irix)\\\nPops a value from the hardware save stack\\\nOp1 = sstack[ssp++]",
                 {op_type::reg}
+            }
+        },{
+            "BITS", {
+                "Bit Width (1/2 Operands) (header)\\\nSpecifies the number of bits the program expects the processor to have",
+                {op_type::comparison, op_type::imm}
+            }
+        },{
+            "MINREG", {
+                "Minimum Registers (1 Operand) (header)\\\nSpecifies the number of registers used by the program",
+                {op_type::imm}
+            }
+        },{
+            "MINHEAP", {
+                "Minimum Heap (1 Operand) (header)\\\nSpecifies the minimum heap size necessary to run the program",
+                {op_type::imm}
+            }
+        },{
+            "MINSTACK", {
+                "Minimum Stack (1 Operand) (header)\\\nSpecifies the minimum stack size necessary to run the program",
+                {op_type::imm}
+            }
+        },{
+            "RUN", {
+                "Run (1 Operand) (header)\\\nSpecifies whether the program can be located in a read only memory space",
+                {op_type::inst}
+            }
+        },{
+            "RAM", {
+                "Random Access Memory (run mode)\\\nSpecifies that the program must be located in a space writeable by the program",
+                {}
+            }
+        },{
+            "ROM", {
+                "Read Only Memory (run mode)\\\nSpecifies that the program should be located in a space not writeable by the program",
+                {}
             }
         }
     };
