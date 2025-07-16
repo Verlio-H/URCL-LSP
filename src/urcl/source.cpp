@@ -931,3 +931,21 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
     if (result.empty()) result.emplace_back("");
     return result;
 }
+
+std::optional<std::string> urcl::source::getHover(const lsp::Position& position, const urcl::config& config) const {
+    unsigned int row = position.line;
+    unsigned int column = position.character;
+    int idx = columnToIdx(code[row], column);
+    if (idx < 0) return {};
+    const urcl::token& token = code[row][idx];
+    switch (token.type) {
+        case (urcl::token::instruction): {
+            if (!urcl::defines::INST_INFO.contains(token.strVal)) return {};
+            std::pair<urcl::defines::description, std::vector<urcl::defines::op_type>> info = urcl::defines::INST_INFO.at(token.strVal);
+            return {info.first};
+        }
+        default: {
+            return {};
+        }
+    }
+}

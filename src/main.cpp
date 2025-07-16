@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
                     .positionEncoding = lsp::PositionEncodingKind::UTF16,
                     .textDocumentSync = lsp::TextDocumentSyncOptions(true, lsp::TextDocumentSyncKind::Full, true),
                     .completionProvider = lsp::CompletionOptions{true, {{".", "@", "!", "%"}}},
+                    .hoverProvider = true,
                     .definitionProvider = true,
                     .foldingRangeProvider = true,
                     .semanticTokensProvider = lsp::SemanticTokensOptions(false, {{"keyword", "variable", "number", "function", "comment", "class", "operator", "macro", "string", escaped, "operator", "namespace"}, {}}, false, true)
@@ -134,6 +135,13 @@ int main(int argc, char *argv[]) {
 
             std::vector<lsp::CompletionItem> result = code[str].getCompletion(params.position, config[str]);
             return lsp::requests::TextDocument_Completion::Result{result};
+        }
+    ).add<lsp::requests::TextDocument_Hover>(
+        [&code, &config](lsp::requests::TextDocument_Hover::Params&& params) {
+            std::filesystem::path str = params.textDocument.uri.path();
+            std::optional<std::string> hover = code[str].getHover(params.position, config[str]);
+            if (!hover.has_value()) return lsp::requests::TextDocument_Hover::Result{};
+            return lsp::requests::TextDocument_Hover::Result{{hover->data(), code[str].getTokenRange(params.position)}};
         }
     );
     
