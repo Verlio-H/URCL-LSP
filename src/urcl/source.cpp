@@ -865,11 +865,13 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                     }
                 }
             }
-            fprintf(stderr, "const %s\n", token.original.c_str());
             for (const std::pair<std::string, std::pair<std::filesystem::path, urcl::line_number>>& def : definesDefs) {
-                fprintf(stderr, "%s %d\n", def.first.c_str(), def.first.starts_with(token.original));
                 if (def.first.starts_with(token.original)) {
-                    result.emplace_back(def.first);
+                    if (token.original.at(0) == '@') {
+                        result.emplace_back(def.first.substr(1));
+                    } else {
+                        result.emplace_back(def.first);
+                    }
                 }
             }
             break;
