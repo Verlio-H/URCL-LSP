@@ -462,7 +462,7 @@ namespace urcl::defines {
         },{
             "OUT", {
                 "Output (1/2 Operand(s)) (I/O)\\\nWrites data to an I/O device",
-                {op_type::port, op_type::reg}
+                {op_type::port, op_type::val}
             }
         },{
             "FTOI", {
@@ -597,7 +597,7 @@ namespace urcl::defines {
         },{
             "@DEFINE", {
                 "Define (2 Operands) (macro)\\\nDefines a new constant\\\nOp1 = Op2",
-                {op_type::imm, op_type::imm}
+                {op_type::val, op_type::val}
             }
         },{
             "@DEBUG", {
@@ -633,6 +633,326 @@ namespace urcl::defines {
             "ONWRITE", {
                 "On Write (debug mode) (urcx)\\\nPauses execution whenever the following operand is written to",
                 {op_type::val}
+            }
+        }
+    };
+
+    const std::vector<op_type> IN_DEFAULT = {op_type::port, op_type::reg};
+
+    const std::unordered_map<std::string, std::pair<description, std::vector<op_type>>> IN_INFO = {
+        {
+            "%TEXT", {
+                "Read character input from a terminal device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%NUMB", {
+                "Read character input from a terminal device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%SUPPORTED", {
+                "Return supported state of port specified by OUT%SUPPORTED",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%PROFILE", {
+                "Return current profile",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%X", {
+                "Return display size in pixels in x dimension",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%Y", {
+                "Return display size in pixels in y dimension",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%COLOR", {
+                "Read pixel color on display (coordinates specified by %X and %Y)",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%BUFFER", {
+                "Read current buffer state",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%ASCII", {
+                "Read ASCII character from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%CHAR5", {
+                "Read 5 bit character from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%CHAR6", {
+                "Read 6 bit character from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%ASCII7", {
+                "Read 7-bit ASCII character from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%UTF8", {
+                "Read UTF-8 byte from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%UTF16", {
+                "Read UTF-16 word from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%UTF32", {
+                "Read UTF-32 codepoint from terminal",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%INT", {
+                "Read signed integer from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%UINT", {
+                "Read unsigned integer from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%BIN", {
+                "Read binary integer from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%Hex", {
+                "Read hexadecimal integer from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%FLOAT", {
+                "Read floating point number from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%FIXED", {
+                "Read fixed point number from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%ADDR", {
+                "Read size of current page on storage device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%BUS", {
+                "Read word of data from storage device (address specified by %ADDR)",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%PAGE", {
+                "Return number of pages on storage device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%RNG", {
+                "Return random number",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%NOTE", {
+                "Read currently set pitch on audio device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%INSTR", {
+                "Read currently set instrument on audio device",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%NLEG", {
+                "Read signed integer from numeric I/O",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%WAIT", {
+                "Wait until timer runs out",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%NADDR", {
+                "Read current network address",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%DATA", {
+                "Read data from network",
+                {op_type::port, op_type::reg}
+            }
+        },
+    };
+
+    const std::unordered_map<std::string, std::pair<description, std::vector<op_type>>> OUT_INFO = {
+        {
+            "%TEXT", {
+                "Write character output to a terminal device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%NUMB", {
+                "Write numeric input to a numeric output device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%SUPPORTED", {
+                "Set the port number to query support for",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%PROFILE", {
+                "Set the device profile",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%X", {
+                "Set the x coordinate of display I/O",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%Y", {
+                "Set the y coordinate of display I/O",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%COLOR", {
+                "Set the color of a pixel of the display (coordinates specified by %X and %Y)",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%BUFFER", {
+                "Set the display buffer state",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%ASCII", {
+                "Write character output to an ASCII terminal device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%CHAR5", {
+                "Write character output to a terminal device utilizing 5 bit characters",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%CHAR6", {
+                "Write character output to a terminal device utilizing 6 bit characters",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%ASCII7", {
+                "Write character output to a terminal device utilizing 7 bit ASCII characters",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%UTF8", {
+                "Write character output to a terminal device utilizing UTF-8",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%UTF16", {
+                "Write character output to a terminal device utilizing UTF-16",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%UTF32", {
+                "Write character output to a terminal device utilizing UTF-32",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%INT", {
+                "Write numeric output to a numeric device using signed decimal numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%UINT", {
+                "Write numeric output to a numeric device using unsigned decimal numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%BIN", {
+                "Write numeric output to a numeric device utilizing binary numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%HEX", {
+                "Write numeric output to a numeric device utilizing hexadecimal numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%FLOAT", {
+                "Write numeric output to a numeric device utilizing floating point numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%FIXED", {
+                "Write numeric output to a numeric device utilizing fixed point numbers",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%ADDR", {
+                "Set storage device address",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%BUS", {
+                "Write word of data to storage device (address specified by %ADDR)",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%PAGE", {
+                "Set page of storage device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%RNG", {
+                "Set seed of random number generator",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%NOTE", {
+                "Set output pitch of audio device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%INSTR", {
+                "Set output instrument of audio device",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%NLEG", {
+                "Make sound on sound device of given length (in milliseconds)",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%WAIT", {
+                "Set wait time (in milliseconds)",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%NADDR", {
+                "Set network address",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%DATA", {
+                "Send network data",
+                {op_type::port, op_type::val}
             }
         }
     };

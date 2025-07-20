@@ -158,11 +158,20 @@ void urcl::source::updateErrors(const urcl::config& config) {
     urcl::object_id currentObjId = 0;
     for (std::vector<urcl::token>& line : code) {
         bool expect = true;
+        bool inArray = false;
         int operand = -1;
+        uint32_t instColumn = 0;
         std::string_view inst;
+        const std::vector<urcl::defines::op_type> *operands = nullptr;
         for (urcl::token& token : line) {
+            if (inArray && token.type == urcl::token::bracket && token.original == "]") {
+                inArray = false;
+                continue;
+            }
+
             if (token.type == urcl::token::comment) continue;
-            ++operand;
+
+            if (!inArray) ++operand;
             if (operand == 0 && (token.type == urcl::token::label || token.type == urcl::token::symbol)) {
                 if (token.original.length() >= 3 && token.original.substr(0, 3) == "!!!") {
                     currentObjId = nextObjId++;
@@ -172,10 +181,103 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 expect = false;
                 continue;
             }
-            if (token.type == urcl::token::instruction || token.type == urcl::token::macro) {
+
+            if (!operands && (token.type == urcl::token::instruction || token.type == urcl::token::macro)) {
                 inst = std::string_view(token.strVal);
+                instColumn = token.column;
+                if (urcl::defines::INST_INFO.contains(token.strVal)) {
+                    operands = &urcl::defines::INST_INFO.at(token.strVal).second;
+                }
             }
+
             if (token.parse_error != "") continue;
+
+            if (!inArray && token.type == urcl::token::bracket && token.original == "]") {
+                token.parse_error = "Closing bracket before opening bracket";
+                continue;
+            }
+
+            if (operand == 1 && inst == "OUT" && token.column == instColumn + 3) {
+                if (urcl::defines::OUT_INFO.contains(token.strVal)) {
+                    operands = &urcl::defines::OUT_INFO.at(token.strVal).second;
+                }
+            } else if (operand == 1 && inst == "IN" && token.column == instColumn + 2) {
+                if (urcl::defines::IN_INFO.contains(token.strVal)) {
+                    operands = &urcl::defines::IN_INFO.at(token.strVal).second;
+                } else {
+                    operands = &urcl::defines::IN_DEFAULT;
+                }
+            }
+
+            if (!inArray && operands) {
+                if (operands->size() < operand) {
+                    if (inst != "@DEBUG") token.parse_error = "Too many operands in language construct";
+                } else if (operand != 0) {
+                    urcl::defines::op_type op = operands->at(operand - 1);
+                    switch (op) {
+                        case (urcl::defines::op_type::inst): {
+                            if (token.type != urcl::token::instruction) {
+                                token.parse_error = "Unexpected operand type";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::port): {
+                            if (token.type != urcl::token::port) {
+                                token.parse_error = "Expected port in operand";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::array): {
+                            if (token.type == urcl::token::bracket && token.original == "[") break;
+                            if (!tokenIsImmediate(token, *this) || (!config.useIris && token.original == "_")) {
+                                token.parse_error = "Expected array type or immediate value";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::comparison): {
+                            if (token.type == urcl::token::comparison) break;
+                            ++operand;
+                        }
+                        case (urcl::defines::op_type::imm): {
+                            if (!tokenIsImmediate(token, *this) || (!config.useIris && token.original == "_")) {
+                                if (config.useUrcx && inst == "IMM" && tokenIsRegister(token, *this)) break;
+                                token.parse_error = "Expected immediate value in operand";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::reg): {
+                            if (!tokenIsRegister(token, *this)) {
+                                token.parse_error = "Expected register in operand";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::basicval): {
+                            if (tokenIsRegister(token, *this)) break;
+                            if (!config.useBasic) {
+                                token.parse_error = "Expected register in operand";
+                                break;
+                            }
+                            if (!tokenIsImmediate(token, *this) || token.original == "_") {
+                                token.parse_error = "Expected value in operand";
+                            }
+                            break;
+                        }
+                        case (urcl::defines::op_type::val): {
+                            if (!tokenIsRegister(token, *this) && !tokenIsImmediate(token, *this) || token.original == "_") {
+                                token.parse_error = "Expected register or immediate value in operand";
+                            }
+                            break;
+                        }
+                    }
+                }
+
+            }
+
+            if (token.type == urcl::token::bracket && token.original == "[") {
+                if (inArray) token.parse_error = "Nested array arguments not allowed";
+                inArray = true;
+                continue;
+            }
 
             if (operand == 1 && inst == "@DEFINE") {
                 std::string copy = util::strToUpper(token.original.substr(1));
@@ -214,6 +316,16 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         break;
                 }
             }
+
+            if (inArray && token.parse_error == "" && !tokenIsImmediate(token, *this) && token.type != urcl::token::string) {
+                token.parse_error = "Array contents must be immediate values";
+            }
+        }
+        if (line.size() == 0) continue;
+        if (operands && line[0].parse_error == "" && operands->size() > operand && inst != "@DEBUG") {
+            line[0].parse_error = "Too few operands in language construct";
+        } else if (inArray && line[line.size() - 1].parse_error == "") {
+            line[line.size() - 1].parse_error = "Unclosed array argument";
         }
     }
 }
@@ -949,6 +1061,77 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
         }
         default: {
             return {};
+        }
+    }
+}
+
+bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source& original) const {
+    switch (token.type) {
+        case (urcl::token::reg): {
+            return true;
+        }
+        case (urcl::token::constant): {
+            std::string copy = util::strToUpper(token.original.substr(1));
+            if (constants.contains(copy)) return false;
+        }
+        case (urcl::token::name): {
+            if (original.definesDefs.contains(token.original)) {
+                const std::filesystem::path& newPath = original.definesDefs.at(token.original).first;
+                const urcl::source *newSrc;
+                if (original.includes.contains(newPath)) {
+                    newSrc = &original.includes.at(newPath);
+                } else {
+                    newSrc = &original;
+                }
+                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
+                if (newToken == nullptr) {
+                    return false;
+                }
+                return newSrc->tokenIsRegister(*newToken, original);
+            }
+            return false;
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
+bool urcl::source::tokenIsImmediate(const urcl::token& token, const urcl::source& original) const {
+    switch (token.type) {
+        case (urcl::token::character):
+        case (urcl::token::escape):
+        case (urcl::token::label):
+        case (urcl::token::literal):
+        case (urcl::token::mem):
+        case (urcl::token::real):
+        case (urcl::token::relative):
+        case (urcl::token::symbol): {
+            return true;
+        }
+        case (urcl::token::constant): {
+            std::string copy = util::strToUpper(token.original.substr(1));
+            if (constants.contains(copy)) return true;
+        }
+        case (urcl::token::name): {
+            if (original.definesDefs.contains(token.original)) {
+                const std::filesystem::path& newPath = original.definesDefs.at(token.original).first;
+                const urcl::source *newSrc;
+                if (original.includes.contains(newPath)) {
+                    newSrc = &original.includes.at(newPath);
+                } else {
+                    newSrc = &original;
+                }
+                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
+                if (newToken == nullptr) {
+                    return false;
+                }
+                return newSrc->tokenIsImmediate(*newToken, original);
+            }
+            return false;
+        }
+        default: {
+            return false;
         }
     }
 }

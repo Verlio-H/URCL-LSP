@@ -39,8 +39,6 @@ namespace urcl {
             std::string parse_error;
             std::string parse_warning;
             uint32_t column;
-
-            
     };
 }
 

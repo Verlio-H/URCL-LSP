@@ -1,5 +1,5 @@
-#ifndef URCL_H
-#define URCL_H
+#ifndef SOURCE_H
+#define SOURCE_H
 
 #include "config.h"
 #include "token.h"
@@ -52,6 +52,9 @@ namespace urcl {
             static const token *findNthOperand(const std::vector<token>& code, unsigned int operand);
             static int columnToIdx(const std::vector<urcl::token>& line, unsigned int column);
             static unsigned int idxToColumn(const std::vector<urcl::token>& line, unsigned int idx);
+            
+            bool tokenIsImmediate(const urcl::token& token, const urcl::source& original) const;
+            bool tokenIsRegister(const urcl::token& token, const urcl::source& original) const;
 
             std::vector<token> parseLine(const std::string& line, bool& inComment, const urcl::config& config) const;
             int resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
