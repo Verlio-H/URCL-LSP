@@ -3,6 +3,7 @@
 #include "defines.h"
 
 #include <fstream>
+#include <string>
 
 urcl::source::source() {}
 
@@ -1058,6 +1059,30 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
             if (!urcl::defines::INST_INFO.contains(token.strVal)) return {};
             std::pair<urcl::defines::description, std::vector<urcl::defines::op_type>> info = urcl::defines::INST_INFO.at(token.strVal);
             return {info.first};
+        }
+        case (urcl::token::port): {
+            std::string result = "IN" + token.strVal + ": ";
+            if (urcl::defines::IN_INFO.contains(token.strVal)) {
+                result += urcl::defines::IN_INFO.at(token.strVal).first;
+            } else {
+                result += "Implementation defined functionality";
+            }
+            result += "\\\nOUT" + token.strVal + ": ";
+            if (urcl::defines::OUT_INFO.contains(token.strVal)) {
+                result += urcl::defines::OUT_INFO.at(token.strVal).first;
+            } else {
+                result += "Implementation defined functionality";
+            }
+            if (urcl::defines::IRIS_PORTS.contains(token.strVal.substr(1))) {
+                result += "\\\nIRIS port";
+            }
+            if (urcl::defines::URCX_PORTS.contains(token.strVal.substr(1))) {
+                result += "\\\nURCX port";
+            }
+            if (urcl::defines::PORT_NUMBS.contains(token.strVal)) {
+                result += "\\\nEquivalent to %" + std::to_string(urcl::defines::PORT_NUMBS.at(token.strVal));
+            }
+            return result;
         }
         default: {
             return {};
