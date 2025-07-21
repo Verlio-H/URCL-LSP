@@ -313,6 +313,26 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         if (definesDefs.contains(token.original)) break;
                         token.parse_error = "Undefined constant value";
                     }
+                    case (urcl::token::escape): {
+                        std::string escaped = token.original.substr(token.original.find('\\') + 1);
+                        switch (escaped[0]) {
+                            case ('\''):
+                            case ('"'):
+                            case ('\\'):
+                            case ('n'):
+                            case ('r'):
+                            case ('t'):
+                            case ('b'):
+                            case ('f'):
+                            case ('v'):
+                            case ('0'): {
+                                break;
+                            }
+                            default: {
+                                token.parse_error = "Invalid escape sequence";
+                            }
+                        }
+                    }
                     default:
                         break;
                 }
