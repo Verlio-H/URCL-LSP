@@ -41,6 +41,8 @@ namespace util {
     uint16_t floatToIris(long double input);
 
     std::string intHover(int64_t numb, uint32_t bits, bool iris);
+
+    std::string divideBits(uint32_t bits, uint32_t divisor);
 }
 
 #endif

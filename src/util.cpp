@@ -109,7 +109,7 @@ std::string util::to_utf8(char32_t codepoint) {
         array[3] = ((char)(codepoint) & 0x3F) | 0x80;
         array[4] = 0;
     } else {
-        return "�";
+        return "";
     }
     return std::string(array);
 }
@@ -161,9 +161,13 @@ uint16_t util::floatToIris(long double input) {
     return sign ? ~result : result;
 }
 
+std::string util::divideBits(uint32_t bits, uint32_t divisor) {
+    return std::to_string((bits - 1) / divisor + 1);
+}
+
 std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
     std::string result;
-    if (numb <= 0xFFFFFFFF && numb >= 32 && numb != '\'') {
+    if (numb <= 0x10FFFF && numb >= 32 && numb != '\'') {
         char buf[5]{};
         result = "\'" + util::to_utf8(numb) + "\'\\\n";
     } else if (numb < 32 || numb == '\'') {
@@ -189,14 +193,25 @@ std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
         }
     }
     uint64_t mask = bits >= 64 ? -1 : ((uint64_t)1 << bits) - 1;
-    result += std::format("{0:} ({1:})\\\n0x{1:x}\\\n0o{1:o}\\\n0b{1:b}", numb, (uint64_t)numb & mask);
+    uint64_t masked = (uint64_t)numb & mask;
+    uint64_t maxBit = (mask + 1) >> 1;
+    if (masked & maxBit) {
+        uint64_t upperBits = (uint64_t)-1 - mask;
+        numb |= upperBits;
+    }
+    std::string format = 
+        "{0:}" + std::string(numb < 0 ? " ({1:})" : "") + "\\\n"
+        "0x{1:0" + util::divideBits(bits, 4) + "x}\\\n"
+        "0o{1:0" + util::divideBits(bits, 3) + "o}\\\n"
+        "0b{1:0" + util::divideBits(bits, 1) + "b}";
+    result += std::vformat(format, std::make_format_args(numb, masked));
     if (bits == 16 && iris) {
         result += std::format("\\\n{}", util::irisToFloat(numb));
     } else if (bits == 32 && sizeof(float) == sizeof(uint32_t)) {
         uint32_t shortenedVal = numb;
-        result += std::format("\\\n{}", reinterpret_cast<float &>(shortenedVal));
+        result += std::format("\\\n{}", (long double)reinterpret_cast<float &>(shortenedVal));
     } else if (bits == 64 && sizeof(double) == sizeof(int64_t)) {
-        result += std::format("\\\n{}", reinterpret_cast<double &>(numb));
+        result += std::format("\\\n{}", (long double)reinterpret_cast<double &>(numb));
     }
     return result;
 }
