@@ -31,6 +31,16 @@ namespace util {
     std::string strToLower(std::string data);
 
     std::string strToUpper(std::string data);
+
+    std::string to_utf8(char32_t codepoint);
+
+    uint32_t from_utf8(std::string input);
+
+    long double irisToFloat(uint16_t input);
+
+    uint16_t floatToIris(long double input);
+
+    std::string intHover(int64_t numb, uint32_t bits, bool iris);
 }
 
 #endif

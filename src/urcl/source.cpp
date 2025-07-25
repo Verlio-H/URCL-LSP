@@ -4,6 +4,8 @@
 
 #include <fstream>
 #include <string>
+#include <clocale>
+#include <cuchar>
 
 urcl::source::source() {}
 
@@ -131,6 +133,20 @@ void urcl::source::updateDefinitions(urcl::source& code, const std::filesystem::
                         break;
                     }
                     source.labelDefs[token.original] = {currentObjId, i};
+                    break;
+                case (urcl::token::instruction):
+                    if (token.strVal != "BITS") {
+                        exit = true;
+                        break;
+                    }
+                    for (int j = k + 1; j < line.size(); ++j) {
+                        if (line[j].type == urcl::token::comment) continue;
+                        if (line[j].type == urcl::token::comparison) continue;
+                        if (line[j].value.literal > UINT16_MAX) break;
+                        bits = std::max(bits, (uint16_t)line[j].value.literal);
+                        break;
+                    }
+                    exit = true;
                     break;
                 case (urcl::token::comment):
                     break;
@@ -285,6 +301,10 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 if (this->constants.contains(copy)) {
                     token.parse_error = "Constant already defined by implementation";
                 }
+            }
+
+            if (token.type == urcl::token::literal && inst == "BITS") {
+                bits = std::max(bits, (uint16_t)token.value.literal);
             }
 
             if (!expect) {
@@ -624,12 +644,8 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                         } else {
                             name.erase(0, 2);
                         }
-                        if (util::isNumber(name)) {
-                            int32_t offset = std::stoi(name);
-                            result.back().value.relative = offset;
-                        } else {
+                        if (!util::isNumber(name)) {
                             result.back().parse_error = "Invalid integer in relative";
-                            result.back().value.relative = 0;
                         }
                         break;
                     }
@@ -687,7 +703,12 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                             }
                         }
                         if (valid) {
-                            int64_t value = std::stoi(name, nullptr, base);
+                            int64_t value;
+                            try {
+                                value = std::stoll(name, nullptr, base);
+                            } catch (std::exception e) {
+                                value = 0;
+                            }
                             result.back().value.literal = value * sign;
                         } else {
                             result.back().parse_error = "Invalid integer literal";
@@ -700,12 +721,8 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     case (urcl::token::reg): {
 
                         name.erase(0, 1);
-                        if (util::isNumber(name)) {
-                            uint32_t value = std::stoi(name);
-                            result.back().value.reg = value;
-                        } else {
+                        if (!util::isNumber(name)) {
                             result.back().parse_error = result.back().type == urcl::token::reg ? "Invalid integer in register" : "Invalid integer in memory address";
-                            result.back().value.reg = 0;
                             result.back().type = urcl::token::name;
                         }
                         break;
@@ -1073,6 +1090,10 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
     int idx = columnToIdx(code[row], column);
     if (idx < 0) return {};
     const urcl::token& token = code[row][idx];
+    return urcl::source::getHover(token, config);
+}
+
+std::optional<std::string> urcl::source::getHover(const urcl::token& token, const urcl::config& config) const {
     switch (token.type) {
         case (urcl::token::macro):
         case (urcl::token::instruction): {
@@ -1104,10 +1125,93 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
             }
             return result;
         }
+        case (urcl::token::literal): {
+            int64_t numb = token.value.literal;
+            return util::intHover(numb, bits, config.useIris);
+        }
+        case (urcl::token::real): {
+            if (bits == 16 && config.useIris) {
+                return util::intHover(util::floatToIris(token.value.real), bits, config.useIris);
+            } else if (bits == 32 && sizeof(float) == sizeof(uint32_t)) {
+                float real = token.value.real;
+                return util::intHover(reinterpret_cast<uint32_t &>(real), bits, config.useIris);
+            } else if (bits == 64 && sizeof(double) == sizeof(int64_t)) {
+                double real = token.value.real;
+                return util::intHover(reinterpret_cast<int64_t &>(real), bits, config.useIris);
+            }
+        }
+        case (urcl::token::character): {
+            std::string character = token.original.substr(1);
+            int64_t numb = util::from_utf8(character);
+            return util::intHover(numb, bits, config.useIris);
+        }
+        case (urcl::token::escape): {
+            std::string escaped = token.original.substr(token.original.find('\\') + 1);
+            int64_t numb;
+            switch (escaped[0]) {
+                case ('\''):
+                    numb = '\'';
+                    break;
+                case ('"'):
+                    numb = '"';
+                    break;
+                case ('\\'):
+                    numb = '\\';
+                    break;
+                case ('n'):
+                    numb = '\n';
+                    break;
+                case ('r'):
+                    numb = '\r';
+                    break;
+                case ('t'):
+                    numb = '\t';
+                    break;
+                case ('b'):
+                    numb = '\b';
+                    break;
+                case ('f'):
+                    numb = '\f';
+                    break;
+                case ('v'):
+                    numb = '\v';
+                    break;
+                case ('0'): {
+                    numb = '\0';
+                    break;
+                }
+                default: {
+                    return {};
+                }
+            }
+            return util::intHover(numb, bits, config.useIris);
+        }
+        case (urcl::token::constant): {
+            std::string copy = util::strToUpper(token.original.substr(1));
+            if (constants.contains(copy)) break;
+        }
+        case (urcl::token::name): {
+            if (definesDefs.contains(token.original)) {
+                const std::filesystem::path& newPath = definesDefs.at(token.original).first;
+                const urcl::source *newSrc;
+                if (includes.contains(newPath)) {
+                    newSrc = &includes.at(newPath);
+                } else {
+                    newSrc = this;
+                }
+                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[definesDefs.at(token.original).second], 2);
+                if (newToken == nullptr) {
+                    break;
+                }
+                return getHover(*newToken, config);
+            }
+
+        }
         default: {
-            return {};
+            break;
         }
     }
+    return {};
 }
 
 bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source& original) const {

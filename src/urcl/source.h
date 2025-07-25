@@ -36,6 +36,7 @@ namespace urcl {
             std::vector<lsp::CompletionItem> getCompletion(const lsp::Position& position, const urcl::config& config) const;
             std::optional<std::string> getHover(const lsp::Position& position, const urcl::config& config) const;
         private:
+            std::optional<std::string> getHover(const urcl::token& token, const urcl::config& config) const;
             std::vector<std::vector<token>> code;
             std::unordered_map<std::string, std::pair<urcl::object_id, urcl::line_number>> labelDefs;
             std::unordered_map<std::string, std::pair<std::filesystem::path, urcl::line_number>> definesDefs;
@@ -47,6 +48,8 @@ namespace urcl {
             std::unordered_set<std::string> instructions{};
             std::unordered_set<std::string> macros{};
             std::unordered_set<std::string> ports{};
+
+            uint16_t bits = 8;
 
             static int iFindNthOperand(const std::vector<urcl::token>& code, unsigned int operand);
             static const token *findNthOperand(const std::vector<token>& code, unsigned int operand);

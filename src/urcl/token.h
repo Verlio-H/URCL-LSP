@@ -31,10 +31,6 @@ namespace urcl {
             union values {
                 long double real;
                 int64_t literal;
-                uint64_t mem;
-                int32_t relative;
-                uint32_t reg;
-                wchar_t character;
             } value;
             std::string parse_error;
             std::string parse_warning;
