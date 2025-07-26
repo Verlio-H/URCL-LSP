@@ -3,6 +3,7 @@
 #include "defines.h"
 
 #include <fstream>
+#include <lsp/types.h>
 #include <string>
 #include <clocale>
 #include <cuchar>
@@ -413,7 +414,7 @@ std::vector<lsp::Diagnostic> urcl::source::getDiagnostics() const {
     return result;
 }
 
-std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Position& position, std::filesystem::path file) const {
+std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Position& position, const std::filesystem::path& file) const {
     unsigned int row = position.line;
     unsigned int column = position.character;
     int idx = columnToIdx(code[row], column);
@@ -1211,6 +1212,55 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
         }
     }
     return {};
+}
+
+std::vector<lsp::Location> urcl::source::getReferences(const lsp::Position& position, const lsp::DocumentUri& uri) const {
+    std::vector<lsp::Location> result;
+    unsigned int row = position.line;
+    unsigned int column = position.character;
+    int idx = columnToIdx(code[row], column);
+    if (idx < 0) return result;
+    const urcl::token& token = code[row][idx];
+    if (token.type == urcl::token::constant) {
+        std::string copy = util::strToUpper(token.original.substr(1));
+        if (constants.contains(copy)) return result;
+    } else if (token.type != urcl::token::label && token.type != urcl::token::symbol && token.type != urcl::token::name) {
+        return result;
+    }
+    
+    unsigned int length = util::utf8len(token.original.c_str());
+    for (unsigned int j = 0; j < code.size(); ++j) {
+        if (j == position.line) continue;
+        const std::vector<urcl::token>& line = code[j];
+        for (unsigned int i = 0; i < line.size(); ++i) {
+            const urcl::token& token2 = line[i];
+            if (token.type == token2.type && token.original == token2.original) {
+                unsigned int column = idxToColumn(line, i);
+                if (column == position.character) continue;
+                lsp::Location loc = lsp::Location{uri, {{j, column}, {j, (column + length)}}};
+                result.push_back(std::move(loc));
+            }
+        }
+    }
+    if (token.type == urcl::token::label) return result;
+
+    for (const std::pair<std::filesystem::path, urcl::source>& include : includes) {
+        lsp::DocumentUri newUri = lsp::FileUri::fromPath(include.first.string());
+        const urcl::source& included = include.second;
+        for (unsigned int j = 0; j < included.code.size(); ++j) {
+            const std::vector<urcl::token>& line = included.code[j];
+            for (unsigned int i = 0; i < line.size(); ++i) {
+                const urcl::token& token2 = line[i];
+                if (token.type == token2.type && token.original == token2.original) {
+                    unsigned int column = idxToColumn(line, i);
+                    lsp::Location loc = lsp::Location{newUri, {{j, column}, {j, (column + length)}}};
+                    result.push_back(std::move(loc));
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source& original) const {

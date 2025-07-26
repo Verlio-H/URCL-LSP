@@ -30,11 +30,12 @@ namespace urcl {
 
             std::vector<unsigned int> getTokens() const;
             std::vector<lsp::Diagnostic> getDiagnostics() const;
-            std::optional<lsp::Location> getDefinitionRange(const lsp::Position& position, std::filesystem::path file) const;
+            std::optional<lsp::Location> getDefinitionRange(const lsp::Position& position, const std::filesystem::path& file) const;
             std::optional<lsp::Range> getTokenRange(const lsp::Position& position) const;
             std::vector<lsp::FoldingRange> getFoldingRanges() const;
             std::vector<lsp::CompletionItem> getCompletion(const lsp::Position& position, const urcl::config& config) const;
             std::optional<std::string> getHover(const lsp::Position& position, const urcl::config& config) const;
+            std::vector<lsp::Location> getReferences(const lsp::Position& position, const lsp::DocumentUri& uri) const;
         private:
             std::optional<std::string> getHover(const urcl::token& token, const urcl::config& config) const;
             std::vector<std::vector<token>> code;

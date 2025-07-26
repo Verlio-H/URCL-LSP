@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
                     .completionProvider = lsp::CompletionOptions{true, {{".", "@", "!", "%"}}},
                     .hoverProvider = true,
                     .definitionProvider = true,
+                    .referencesProvider = true,
                     .foldingRangeProvider = true,
                     .semanticTokensProvider = lsp::SemanticTokensOptions(false, {{"keyword", "variable", "number", "function", "comment", "class", "operator", "macro", "string", escaped, "operator", "namespace"}, {}}, false, true)
                 },
@@ -142,6 +143,11 @@ int main(int argc, char *argv[]) {
             std::optional<std::string> hover = code[str].getHover(params.position, config[str]);
             if (!hover.has_value()) return lsp::requests::TextDocument_Hover::Result{};
             return lsp::requests::TextDocument_Hover::Result{{hover->data(), code[str].getTokenRange(params.position)}};
+        }
+    ).add<lsp::requests::TextDocument_References>(
+        [&code](lsp::requests::TextDocument_References::Params&& params) {
+            std::filesystem::path str = params.textDocument.uri.path();
+            return lsp::requests::TextDocument_References::Result{code[str].getReferences(params.position, params.textDocument.uri)};
         }
     );
     
