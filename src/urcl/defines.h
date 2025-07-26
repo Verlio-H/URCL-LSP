@@ -855,6 +855,11 @@ namespace urcl::defines {
                 "Get time since program start",
                 {op_type::port, op_type::reg}
             }
+        },{
+            "%TIMER", {
+                "Get clock cycles since timer reset",
+                {op_type::port, op_type::reg}
+            }
         }
     };
 
@@ -1037,6 +1042,61 @@ namespace urcl::defines {
         },{
             "%BENCHMARK", {
                 "Set tab title to the time difference between uses of %BENCHMARK",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%CLEAR_SCREEN", {
+                "Resets to display",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%TOGGLE_BUFFER", {
+                "Toggles screen buffering",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%COLORX", {
+                "Sets x coordinate for colored pixels",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%COLORY", {
+                "Sets y coordinate for colored pixels",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%TIMER_RESET", {
+                "Resets timer to zero",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%X1", {
+                "Set first x coordinate of line drawer",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%Y1", {
+                "Set first y coordinate of line drawer",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%X2", {
+                "Set second x coordinate of line drawer",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%Y2", {
+                "Set second y coordinate of line drawer",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%LINE", {
+                "Draw a line of the given color between (%X1, %Y1) and (%X2, %Y2)",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%TILE", {
+                "Draw a tile from the tilemap to the screen at position given by %X and %Y",
                 {op_type::port, op_type::val}
             }
         },
