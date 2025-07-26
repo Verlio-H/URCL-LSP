@@ -12,13 +12,12 @@ A server side implementation of the Language Server Protocol for the URCL progra
 * Semantic Highlighting
 * Go to definition (for labels, defined constants, urcl-ld symbols)
 * Completion Suggestions (for labels, constants, ports, and urcl-ld symbols)
-* Error checking (partially incomplete)
+* Error checking
 * Folding ranges for urcl-ld subobjects
+* Hovers
 
 ## To Come
 
-* Improved error checking
-* Hovers
 * References
 
 ## Building
