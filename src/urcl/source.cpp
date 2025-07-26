@@ -2,6 +2,7 @@
 #include "../util.h"
 #include "defines.h"
 
+#include <cctype>
 #include <fstream>
 #include <lsp/types.h>
 #include <string>
@@ -760,6 +761,12 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             inChar = false;
             inConstruct = false;
             continue;
+        }
+
+        const urcl::token& current = result.back();
+        if (inConstruct && !std::isdigit(line[i]) && (current.type == token::reg || current.type == token::mem)) {
+            result.back().type = urcl::token::mem;
+            inName = true;
         }
 
         if (inConstruct) {
