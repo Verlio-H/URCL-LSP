@@ -1102,26 +1102,25 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
             return {info.first};
         }
         case (urcl::token::port): {
-            std::string result = "IN" + token.strVal + ": ";
+            std::string result = "";
             if (urcl::defines::IN_INFO.contains(token.strVal)) {
-                result += urcl::defines::IN_INFO.at(token.strVal).first;
-            } else {
-                result += "Implementation defined functionality";
+                result = "IN" + token.strVal + ": " + urcl::defines::IN_INFO.at(token.strVal).first + "\\\n";
+            } else if (urcl::defines::STD_PORTS.contains(token.strVal.substr(1))) {
+                result = "IN" + token.strVal + ": Implementation defined functionality\\\n";
             }
-            result += "\\\nOUT" + token.strVal + ": ";
             if (urcl::defines::OUT_INFO.contains(token.strVal)) {
-                result += urcl::defines::OUT_INFO.at(token.strVal).first;
-            } else {
-                result += "Implementation defined functionality";
+                result += "OUT" + token.strVal + ": " + urcl::defines::OUT_INFO.at(token.strVal).first + "\\\n";
+            } else if (urcl::defines::STD_PORTS.contains(token.strVal.substr(1))) {
+                result += "OUT" + token.strVal + ": Implementation defined functionality\\\n";
             }
             if (urcl::defines::IRIS_PORTS.contains(token.strVal.substr(1))) {
-                result += "\\\nIRIS port";
+                result += "IRIS port";
             }
             if (urcl::defines::URCX_PORTS.contains(token.strVal.substr(1))) {
-                result += "\\\nURCX port";
+                result += "URCX port";
             }
             if (urcl::defines::PORT_NUMBS.contains(token.strVal)) {
-                result += "\\\nEquivalent to %" + std::to_string(urcl::defines::PORT_NUMBS.at(token.strVal));
+                result += "Equivalent to %" + std::to_string(urcl::defines::PORT_NUMBS.at(token.strVal));
             }
             return result;
         }

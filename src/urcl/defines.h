@@ -795,7 +795,67 @@ namespace urcl::defines {
                 "Read data from network",
                 {op_type::port, op_type::reg}
             }
-        },
+        },{
+            "%GAMEPAD", {
+                "Read state of gamepad button",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%AXIS", {
+                "Read axis from gamepad (analog input)",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%GAMEPAD_INFO", {
+                "Read gamepad information",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%KEY", {
+                "Read keyboard state",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_X", {
+                "Read x position of mouse",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_Y", {
+                "Read y position of mouse",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_DX", {
+                "Read change in x position of mouse",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_DY", {
+                "Read change in y position of mouse",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_DWHEEL", {
+                "Read mouse scroll amount",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%MOUSE_BUTTONS", {
+                "Read state of mouse buttons",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%FILE", {
+                "Read data from file",
+                {op_type::port, op_type::reg}
+            }
+        },{
+            "%TIME", {
+                "Get time since program start",
+                {op_type::port, op_type::reg}
+            }
+        }
     };
 
     const std::unordered_map<std::string, std::pair<description, std::vector<op_type>>> OUT_INFO = {
@@ -954,7 +1014,32 @@ namespace urcl::defines {
                 "Send network data",
                 {op_type::port, op_type::val}
             }
-        }
+        },{
+            "%GAMEPAD", {
+                "Set controller input to read",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%AXIS", {
+                "Send controller axis input to read",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%KEY", {
+                "Send key read offset",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%FILE", {
+                "Add character to path used for file io",
+                {op_type::port, op_type::val}
+            }
+        },{
+            "%BENCHMARK", {
+                "Set tab title to the time difference between uses of %BENCHMARK",
+                {op_type::port, op_type::val}
+            }
+        },
     };
 
     const std::unordered_map<std::string, uint8_t> PORT_NUMBS = {
