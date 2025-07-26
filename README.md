@@ -15,9 +15,6 @@ A server side implementation of the Language Server Protocol for the URCL progra
 * Error checking
 * Folding ranges for urcl-ld subobjects
 * Hovers
-
-## To Come
-
 * References
 
 ## Building
