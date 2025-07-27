@@ -65,6 +65,8 @@ Controls the availability of iris extensions
 A shortcut for urcx + iris
 ##### standard (disabled by default)
 Controls the enforcement of strict standard compliance
+##### uir (disaled by default)
+Controls the availability of uir in files without the .uir extension
 ##### lowercase (disabled by default)
 Controls the use of lowercase letters for text completion of case insensitive values
 
