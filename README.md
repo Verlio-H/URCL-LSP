@@ -7,6 +7,7 @@ A server side implementation of the Language Server Protocol for the URCL progra
 * @DEFINE support
 * URCX extension support (custom ports, @DEBUG, relatives without sign, etc.)
 * IRIS extension support (floats, RW, hardware stack, _ operand, custom ports)
+* UIR support
 * urcl-ld support (symbols, subobjects, multi-file editing)
 * User configuration (for URCL feature set and urcl-ld includes)
 * Semantic Highlighting
