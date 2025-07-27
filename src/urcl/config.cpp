@@ -44,6 +44,8 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
                     useIris = set;
                 } else if (value == "lowercase") {
                     useLowercase = set;
+                } else if (value == "uir") {
+                    useUir = set;
                 }
                 break;
             }
@@ -91,6 +93,7 @@ urcl::config::config(const std::filesystem::path file) {
     useComplex = true;
     useIris = true;
     useUrcx = true;
+    useUir = true;
     std::filesystem::path path = file.parent_path();
     while (path != file.root_path()) {
         if (std::filesystem::exists(path/"lsp.txt")) {
@@ -101,8 +104,10 @@ urcl::config::config(const std::filesystem::path file) {
             this->useStandard = trueConfig.useStandard;
             this->useIris = trueConfig.useIris;
             this->useUrcx = trueConfig.useUrcx;
+            this->useUir = trueConfig.useUir;
             this->useLowercase = trueConfig.useLowercase;
             this->includes = std::move(trueConfig.includes);
+            if (file.extension() == ".uir") useUir = true;
             return;
         }
         path = path.parent_path();

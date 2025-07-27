@@ -220,7 +220,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 if (urcl::defines::OUT_INFO.contains(token.strVal)) {
                     operands = &urcl::defines::OUT_INFO.at(token.strVal).second;
                 }
-            } else if (operand == 1 && inst == "IN" && token.column == instColumn + 2) {
+            } else if (operand == 1 && inst == "IN" && (config.useUir || config.useIris || token.column == instColumn + 2)) {
                 if (urcl::defines::IN_INFO.contains(token.strVal)) {
                     operands = &urcl::defines::IN_INFO.at(token.strVal).second;
                 } else {
@@ -517,7 +517,8 @@ const urcl::token *urcl::source::findNthOperand(const std::vector<urcl::token>& 
 }
 
 int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int column) {
-    unsigned int col = 0;
+    if (line.size() <= 0) return -1;
+    unsigned int col = line[0].column;
     int i;
     for (i = 0; i < line.size(); ++i) {
         col += util::utf8len(line[i].original.c_str());
@@ -531,7 +532,7 @@ int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int
 }
 
 unsigned int urcl::source::idxToColumn(const std::vector<urcl::token>& line, unsigned int idx) {
-    unsigned int column = 0;
+    unsigned int column = line[0].column;
     for (int i = 0; i < idx; ++i) {
         column += util::utf8len(line[i].original.c_str());
         column += line[i + 1].column - line[i].column - line[i].original.length(); // whitespace
@@ -551,8 +552,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
     bool runHeader = false;
     bool debugMacro = false;
-
-    
+    bool dw = !config.useUir;
 
     if (inComment) {
         size_t end = line.find("*/");
@@ -579,6 +579,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             result.back().original = name;
             if (inInst) {
                 std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+                if (name == "DW" || name == "RW") dw = true;
                 result.back().strVal = name;
                 switch (result.back().type) {
                     case (urcl::token::instruction): {
@@ -722,8 +723,22 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     case (urcl::token::mem):
                     case (urcl::token::reg): {
 
-                        name.erase(0, 1);
-                        if (!util::isNumber(name)) {
+                        if (name.starts_with("[M") || name.starts_with("[m") || name.starts_with("[#")) {
+                            if (!util::isNumber(name.substr(2))) {
+                                result.back().parse_error = "Invalid integer in memory address";
+                                result.back().type = urcl::token::name;
+                            } else if (line[i] != ']') {
+                                result.back().parse_error = "Unterminated uir memory reference";
+                                result.back().type = urcl::token::name;
+                            }
+                            if (line[i] == ']') {
+                                result.back().original += ']';
+                                ++i;
+                            }
+                            break;
+                        }
+
+                        if (!util::isNumber(name.substr(1))) {
                             result.back().parse_error = result.back().type == urcl::token::reg ? "Invalid integer in register" : "Invalid integer in memory address";
                             result.back().type = urcl::token::name;
                         }
@@ -765,7 +780,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
         const urcl::token& current = result.back();
         if (inConstruct && !std::isdigit(line[i]) && (current.type == token::reg || current.type == token::mem)) {
-            result.back().type = urcl::token::mem;
+            result.back().type = urcl::token::name;
             inName = true;
         }
 
@@ -822,6 +837,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
         inConstruct = true;
 
+        name = line[i];
         if (line[i] == 'R' || line[i] == 'r' || line[i] == '$') {
             result.push_back({urcl::token::reg, "", "", 0, "", "", i});
         } else if ((line[i] == 'S' || line[i] == 's') && (line[i + 1] == 'P' || line[i + 1] == 'p')) {
@@ -841,6 +857,10 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             inInst = true;
         } else if (line[i] == '~') {
             result.push_back({urcl::token::relative, "", "", 0, "", "", i});
+        } else if (!dw && line[i] == '[' && (line[i + 1] == 'M' || line[i + 1] == 'm' || line[i + 1] == '#')) {
+            result.push_back({urcl::token::reg, "", "", 0, "", "", i});
+            name = name + line[i + 1];
+            ++i;
         } else if (line[i] == '[' || line[i] == ']') {
             result.push_back({urcl::token::bracket, line.substr(i, 1), "", 0, "", "", i});
             inConstruct = false;
@@ -860,7 +880,6 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             result.push_back({urcl::token::name, "", "", 0, "", "", i});
             inName = true;
         }
-        name = line[i];
     }
     if (inStr) {
         result.back().original = name;
