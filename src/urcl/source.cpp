@@ -220,7 +220,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 if (urcl::defines::OUT_INFO.contains(token.strVal)) {
                     operands = &urcl::defines::OUT_INFO.at(token.strVal).second;
                 }
-            } else if (operand == 1 && inst == "IN" && (config.useUir || config.useIris || token.column == instColumn + 2)) {
+            } else if (token.type == urcl::token::port && operand == 1 && inst == "IN" && (config.useUir || config.useIris || token.column == instColumn + 2)) {
                 if (urcl::defines::IN_INFO.contains(token.strVal)) {
                     operands = &urcl::defines::IN_INFO.at(token.strVal).second;
                 } else {
