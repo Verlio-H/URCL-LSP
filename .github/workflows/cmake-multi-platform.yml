@@ -7,7 +7,6 @@ on: [push]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
@@ -43,13 +42,14 @@ jobs:
     steps:
     - uses: msys2/setup-msys2@v2
       with:
-        runs-on: windows-latest
+        if: runner.os == 'Windows'
         update: true
         install:
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-ninja
           
     - name: Move MinGW to PATH
+      shell: bash
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
           echo "D:/a/_temp/msys64/mingw64/bin" >> $GITHUB_PATH
