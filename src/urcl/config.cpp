@@ -16,7 +16,7 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
 
     while (std::getline(in, line)) {
         if (line.size() && line[line.size() - 1] == '\r') {
-           line = line.substr( 0, line.size() - 1 );
+           line = line.substr(0, line.size() - 1);
         }
         line = util::trim(line);
 
@@ -98,8 +98,8 @@ urcl::config::config(const std::filesystem::path file) {
     useUir = true;
     std::filesystem::path path = file.parent_path();
     while (path != file.root_path()) {
-        if (std::filesystem::exists(path/"lsp.txt")) {
-            urcl::config trueConfig(path/"lsp.txt", file);
+        if (std::filesystem::exists(path / "lsp.txt")) {
+            urcl::config trueConfig(path / "lsp.txt", file);
             this->useCore = trueConfig.useCore;
             this->useBasic = trueConfig.useBasic;
             this->useComplex = trueConfig.useComplex;
@@ -109,7 +109,7 @@ urcl::config::config(const std::filesystem::path file) {
             this->useUir = trueConfig.useUir;
             this->useLowercase = trueConfig.useLowercase;
             this->includes = std::move(trueConfig.includes);
-            if (file.extension() == ".uir") useUir = true;
+            if (file.extension() == ".uir") this->useUir = true;
             return;
         }
         path = path.parent_path();
