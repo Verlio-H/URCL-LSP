@@ -40,9 +40,11 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: msys2/setup-msys2@v2
+
+    - name: msys2 Setup
+      if: runner.os == 'Windows'
+      uses: msys2/setup-msys2@v2
       with:
-        if: runner.os == 'Windows'
         update: true
         install:
           mingw-w64-x86_64-toolchain
