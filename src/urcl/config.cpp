@@ -15,7 +15,9 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
     bool foundIncludes = false;
 
     while (std::getline(in, line)) {
-
+        if (line.size() && line[line.size() - 1] == '\r') {
+           line = line.substr( 0, line.size() - 1 );
+        }
         line = util::trim(line);
 
         bool set = true;
