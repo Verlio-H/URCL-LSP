@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string>
 #include <format>
+#include <cmath>
 
 size_t util::utf8len(const char* str) {
     size_t len = 0;
