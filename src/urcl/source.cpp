@@ -9,6 +9,8 @@
 #include <clocale>
 #include <cuchar>
 
+typedef unsigned int uint;
+
 urcl::source::source() {}
 
 urcl::source::source(const std::vector<std::string>& source, const urcl::config& config) {

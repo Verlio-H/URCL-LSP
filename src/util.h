@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <string>
+#include <cstdint>
 
 namespace util {
     size_t utf8len(const char* str);
