@@ -85,7 +85,8 @@ void urcl::source::updateReferences(const std::unordered_map<std::filesystem::pa
     }
 }
 
-void urcl::source::updateDefinitions(const std::filesystem::path& loc) {
+void urcl::source::updateDefinitions(const std::filesystem::path& loc, const urcl::config& config) {
+    if (config.useIris && !config.useStandard) bits = 16;
     updateDefinitions(*this, loc, true);
 }
 
@@ -250,8 +251,10 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         }
                         case (urcl::defines::op_type::array): {
                             if (token.type == urcl::token::bracket && token.original == "[") break;
-                            if (!tokenIsImmediate(token, *this) || (!config.useIris && token.original == "_")) {
-                                token.parse_error = "Expected array type or immediate value";
+                            if (config.useIris && token.original == "_") break;
+                            if ((config.useIris || config.useUrcx) && tokenIsR0(token, *this)) break;
+                            if (!tokenIsImmediate(token, *this)) {
+                                token.parse_error = "Expected array or immediate value";
                             }
                             break;
                         }
@@ -1167,6 +1170,7 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
                 double real = token.value.real;
                 return util::intHover(reinterpret_cast<int64_t &>(real), bits, config.useIris);
             }
+            return util::intHover(0, bits, config.useIris);
         }
         case (urcl::token::character): {
             std::string character = token.original.substr(1);
@@ -1353,6 +1357,39 @@ bool urcl::source::tokenIsImmediate(const urcl::token& token, const urcl::source
                     return false;
                 }
                 return newSrc->tokenIsImmediate(*newToken, original);
+            }
+            return false;
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
+bool urcl::source::tokenIsR0(const urcl::token& token, const urcl::source& original) const {
+    switch (token.type) {
+        case (urcl::token::reg): {
+            if (token.original == "R0" || token.original == "r0" || token.original == "$0") return true;
+            return false;
+        }
+        case (urcl::token::constant): {
+            std::string copy = util::strToUpper(token.original.substr(1));
+            if (constants.contains(copy)) return false;
+        }
+        case (urcl::token::name): {
+            if (original.definesDefs.contains(token.original)) {
+                const std::filesystem::path& newPath = original.definesDefs.at(token.original).first;
+                const urcl::source *newSrc;
+                if (original.includes.contains(newPath)) {
+                    newSrc = &original.includes.at(newPath);
+                } else {
+                    newSrc = &original;
+                }
+                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
+                if (newToken == nullptr) {
+                    return false;
+                }
+                return newSrc->tokenIsRegister(*newToken, original);
             }
             return false;
         }

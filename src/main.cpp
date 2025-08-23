@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
             config.emplace(str, str);
             code.emplace(str, urcl::source(document, config.at(str)));
             code[str].updateReferences(code, config[str]);
-            code[str].updateDefinitions(str);
+            code[str].updateDefinitions(str, config[str]);
             code[str].updateErrors(config[str]);
             documents[str] = std::move(document);
         }
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
             code[str] = urcl::source(documents[str], config[str]);
             code[str].updateReferences(code, config[str]);
-            code[str].updateDefinitions(str);
+            code[str].updateDefinitions(str, config[str]);
             code[str].updateErrors(config[str]);
             lsp::notifications::TextDocument_PublishDiagnostics::Params errorParam{params.textDocument.uri, code[str].getDiagnostics()};
             messageHandler.sendNotification<lsp::notifications::TextDocument_PublishDiagnostics>(std::move(errorParam));
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
                 std::filesystem::path str = params.textDocument.uri.path();
                 code[str] = urcl::source(document, config[str]);
                 code[str].updateReferences(code, config[str]);
-                code[str].updateDefinitions(str);
+                code[str].updateDefinitions(str, config[str]);
                 code[str].updateErrors(config[str]);
                 documents[str] = std::move(document);
             }

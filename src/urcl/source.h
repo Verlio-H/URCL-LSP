@@ -25,7 +25,7 @@ namespace urcl {
             source(const std::vector<std::string>& source, const urcl::config& config);
 
             void updateReferences(const std::unordered_map<std::filesystem::path, source>& all, const urcl::config& config);
-            void updateDefinitions(const std::filesystem::path& loc);
+            void updateDefinitions(const std::filesystem::path& loc, const urcl::config& config);
             void updateErrors(const urcl::config& config);
 
             std::vector<unsigned int> getTokens() const;
@@ -59,6 +59,7 @@ namespace urcl {
             
             bool tokenIsImmediate(const urcl::token& token, const urcl::source& original) const;
             bool tokenIsRegister(const urcl::token& token, const urcl::source& original) const;
+            bool tokenIsR0(const urcl::token& token, const urcl::source& original) const;
 
             std::vector<token> parseLine(const std::string& line, bool& inComment, const urcl::config& config) const;
             int resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
