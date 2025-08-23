@@ -41,6 +41,14 @@ jobs:
             c_compiler: cl
 
     steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+          update: true
+          install: mingw-w64-x86_64-toolchain
+          
+    - name: Move MinGW to PATH
+      run: echo "D:/a/_temp/msys64/mingw64/bin" >> $GITHUB_PATH
+      
     - uses: actions/checkout@v4
 
     - name: Set reusable strings
