@@ -206,13 +206,22 @@ std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
         "0o{1:0" + util::divideBits(bits, 3) + "o}\\\n"
         "0b{1:0" + util::divideBits(bits, 1) + "b}";
     result += std::vformat(format, std::make_format_args(numb, masked));
+    long double value;
     if (bits == 16 && iris) {
-        result += std::format("\\\n{}", util::irisToFloat(numb));
+        value = util::irisToFloat(numb);
     } else if (bits == 32 && sizeof(float) == sizeof(uint32_t)) {
         uint32_t shortenedVal = numb;
-        result += std::format("\\\n{}", (long double)reinterpret_cast<float &>(shortenedVal));
+        value = reinterpret_cast<float &>(shortenedVal);
     } else if (bits == 64 && sizeof(double) == sizeof(int64_t)) {
-        result += std::format("\\\n{}", (long double)reinterpret_cast<double &>(numb));
+        value = reinterpret_cast<double &>(numb);
+    } else {
+        return result;
+    }
+    long double integer;
+    if (std::modfl(value, &integer) == 0) {
+        result += std::format("\\\n{:.1f}", value);
+    } else {
+        result += std::format("\\\n{}", value);
     }
     return result;
 }
