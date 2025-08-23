@@ -10,6 +10,7 @@
 #include "urcl/source.h"
 #include "urcl/config.h"
 
+typedef unsigned int uint;
 
 std::vector<std::string> splitString(std::string &str) {
     std::vector<std::string> result{};
