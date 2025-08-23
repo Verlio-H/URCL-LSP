@@ -85,19 +85,19 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
-        name: urcl-lsp
-        path: build-ubuntu/
+        name: urcl-lsp-ubuntu
+        path: build/
 
     - name: Upload MacOS build artifact
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: urcl-lsp
-        path: build-macos/
+        name: urcl-lsp-macos
+        path: build/
 
     - name: Upload Windows build artifact
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v4
       with:
-        name: urcl-lsp.exe
-        path: build-windows/
+        name: urcl-lsp-windows
+        path: build/
