@@ -26,9 +26,6 @@ jobs:
             c_compiler: gcc
             cpp_compiler: g++
           - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-          - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
           - os: macos-latest
@@ -38,6 +35,8 @@ jobs:
           - os: windows-latest
             c_compiler: clang
           - os: macos-latest
+            c_compiler: gcc
+          - os: ubuntu-latest
             c_compiler: gcc
 
     steps:
@@ -82,8 +81,23 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Upload build artifact
+    - name: Upload Linux build artifact
+      if: runner.os == 'Linux'
       uses: actions/upload-artifact@v4
       with:
-        name: urcl-lsp-build
-        path: build/
+        name: urcl-lsp
+        path: build-ubuntu/
+
+    - name: Upload MacOS build artifact
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        name: urcl-lsp
+        path: build-macos/
+
+    - name: Upload Windows build artifact
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: urcl-lsp.exe
+        path: build-windows/
