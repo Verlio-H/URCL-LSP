@@ -251,7 +251,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         }
                         case (urcl::defines::op_type::array): {
                             if (token.type == urcl::token::bracket && token.original == "[") break;
-                            if (config.useIris && tokenIsBlank(token, *this)) break;
+                            if ((config.useIris || config.useUrcx) && tokenIsBlank(token, *this)) break;
                             if ((config.useIris || config.useUrcx) && tokenIsR0(token, *this)) break;
                             if (!tokenIsImmediate(token, *this)) {
                                 token.parse_error = "Expected array or immediate value";
@@ -640,7 +640,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                 }
                 inInst = false;
             } else if (inName) {
-                if (config.useIris && name == "_") {
+                if ((config.useIris || config.useUrcx) && name == "_") {
                     result.back().type = urcl::token::literal;
                     result.back().value.literal = 0;
                 }
