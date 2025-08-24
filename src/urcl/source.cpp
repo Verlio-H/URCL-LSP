@@ -251,7 +251,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         }
                         case (urcl::defines::op_type::array): {
                             if (token.type == urcl::token::bracket && token.original == "[") break;
-                            if (config.useIris && token.original == "_") break;
+                            if (config.useIris && tokenIsBlank(token, *this)) break;
                             if ((config.useIris || config.useUrcx) && tokenIsR0(token, *this)) break;
                             if (!tokenIsImmediate(token, *this)) {
                                 token.parse_error = "Expected array or immediate value";
@@ -263,7 +263,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                             ++operand;
                         }
                         case (urcl::defines::op_type::imm): {
-                            if (!tokenIsImmediate(token, *this) || (!config.useIris && token.original == "_")) {
+                            if (!tokenIsImmediate(token, *this)) {
                                 if (config.useUrcx && inst == "IMM" && tokenIsRegister(token, *this)) break;
                                 token.parse_error = "Expected immediate value in operand";
                             }
@@ -281,13 +281,14 @@ void urcl::source::updateErrors(const urcl::config& config) {
                                 token.parse_error = "Expected register in operand";
                                 break;
                             }
-                            if (!tokenIsImmediate(token, *this) || token.original == "_") {
+                            if (!tokenIsImmediate(token, *this)) {
                                 token.parse_error = "Expected value in operand";
                             }
                             break;
                         }
                         case (urcl::defines::op_type::val): {
-                            if (!tokenIsRegister(token, *this) && !tokenIsImmediate(token, *this) || token.original == "_") {
+                            if (!tokenIsRegister(token, *this) && !tokenIsImmediate(token, *this)) {
+                                if ((config.useIris || config.useUrcx) && inst == "@DEFINE" && tokenIsBlank(token, *this)) break;
                                 token.parse_error = "Expected register or immediate value in operand";
                             }
                             break;
@@ -366,7 +367,9 @@ void urcl::source::updateErrors(const urcl::config& config) {
             }
 
             if (inArray && token.parse_error == "" && !tokenIsImmediate(token, *this) && token.type != urcl::token::string) {
-                token.parse_error = "Array contents must be immediate values";
+                if (!((config.useIris || config.useUrcx) && (tokenIsR0(token, *this) || tokenIsBlank(token, *this)))) {
+                    token.parse_error = "Array contents must be immediate values";
+                }
             }
         }
         if (line.size() == 0) continue;
@@ -1122,10 +1125,10 @@ std::optional<std::string> urcl::source::getHover(const lsp::Position& position,
     int idx = columnToIdx(code[row], column);
     if (idx < 0) return {};
     const urcl::token& token = code[row][idx];
-    return urcl::source::getHover(token, config);
+    return urcl::source::getHover(token, config, false);
 }
 
-std::optional<std::string> urcl::source::getHover(const urcl::token& token, const urcl::config& config) const {
+std::optional<std::string> urcl::source::getHover(const urcl::token& token, const urcl::config& config, bool inConst) const {
     switch (token.type) {
         case (urcl::token::macro):
         case (urcl::token::instruction): {
@@ -1157,6 +1160,7 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
             return result;
         }
         case (urcl::token::literal): {
+            if (token.original == "_") break;
             int64_t numb = token.value.literal;
             return util::intHover(numb, bits, config.useIris);
         }
@@ -1218,9 +1222,16 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
             }
             return util::intHover(numb, bits, config.useIris);
         }
+        case (urcl::token::reg): {
+            if (inConst) return token.original;
+            break;
+        }
         case (urcl::token::constant): {
             std::string copy = util::strToUpper(token.original.substr(1));
-            if (constants.contains(copy)) break;
+            if (constants.contains(copy)) {
+                if (inConst) return token.original;
+                break;
+            }
         }
         case (urcl::token::name): {
             if (definesDefs.contains(token.original)) {
@@ -1235,9 +1246,9 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
                 if (newToken == nullptr) {
                     break;
                 }
-                return getHover(*newToken, config);
+                return getHover(*newToken, config, true);
             }
-
+            break;
         }
         default: {
             break;
@@ -1295,14 +1306,11 @@ std::vector<lsp::Location> urcl::source::getReferences(const lsp::Position& posi
     return result;
 }
 
-bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source& original) const {
+const urcl::token *urcl::source::getBaseToken(const urcl::token& token, const urcl::source& original) const {
     switch (token.type) {
-        case (urcl::token::reg): {
-            return true;
-        }
         case (urcl::token::constant): {
             std::string copy = util::strToUpper(token.original.substr(1));
-            if (constants.contains(copy)) return false;
+            if (constants.contains(copy)) return &token;
         }
         case (urcl::token::name): {
             if (original.definesDefs.contains(token.original)) {
@@ -1315,11 +1323,25 @@ bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source&
                 }
                 const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
                 if (newToken == nullptr) {
-                    return false;
+                    return nullptr;
                 }
-                return newSrc->tokenIsRegister(*newToken, original);
+                return newSrc->getBaseToken(*newToken, original);
             }
-            return false;
+            return nullptr;
+        }
+        default: {
+            return &token;
+        }
+    }
+}
+
+bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source& original) const {
+    const urcl::token *trueTokenPtr = urcl::source::getBaseToken(token, original);
+    if (trueTokenPtr == nullptr) return false;
+    const urcl::token &trueToken = *trueTokenPtr;
+    switch (trueToken.type) {
+        case (urcl::token::reg): {
+            return true;
         }
         default: {
             return false;
@@ -1328,37 +1350,21 @@ bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source&
 }
 
 bool urcl::source::tokenIsImmediate(const urcl::token& token, const urcl::source& original) const {
-    switch (token.type) {
+    const urcl::token *trueTokenPtr = urcl::source::getBaseToken(token, original);
+    if (trueTokenPtr == nullptr) return false;
+    const urcl::token &trueToken = *trueTokenPtr;
+    switch (trueToken.type) {
+        case (urcl::token::literal):
+            if (trueToken.original == "_") return false;
         case (urcl::token::character):
         case (urcl::token::escape):
         case (urcl::token::label):
-        case (urcl::token::literal):
         case (urcl::token::mem):
         case (urcl::token::real):
         case (urcl::token::relative):
+        case (urcl::token::constant):
         case (urcl::token::symbol): {
             return true;
-        }
-        case (urcl::token::constant): {
-            std::string copy = util::strToUpper(token.original.substr(1));
-            if (constants.contains(copy)) return true;
-        }
-        case (urcl::token::name): {
-            if (original.definesDefs.contains(token.original)) {
-                const std::filesystem::path& newPath = original.definesDefs.at(token.original).first;
-                const urcl::source *newSrc;
-                if (original.includes.contains(newPath)) {
-                    newSrc = &original.includes.at(newPath);
-                } else {
-                    newSrc = &original;
-                }
-                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
-                if (newToken == nullptr) {
-                    return false;
-                }
-                return newSrc->tokenIsImmediate(*newToken, original);
-            }
-            return false;
         }
         default: {
             return false;
@@ -1366,31 +1372,25 @@ bool urcl::source::tokenIsImmediate(const urcl::token& token, const urcl::source
     }
 }
 
-bool urcl::source::tokenIsR0(const urcl::token& token, const urcl::source& original) const {
-    switch (token.type) {
-        case (urcl::token::reg): {
-            if (token.original == "R0" || token.original == "r0" || token.original == "$0") return true;
+bool urcl::source::tokenIsBlank(const urcl::token& token, const urcl::source& original) const {
+    const urcl::token *trueTokenPtr = urcl::source::getBaseToken(token, original);
+    if (trueTokenPtr == nullptr) return false;
+    const urcl::token &trueToken = *trueTokenPtr;
+    switch (trueToken.type) {
+        case (urcl::token::literal):
+            return trueToken.original == "_";
+        default:
             return false;
-        }
-        case (urcl::token::constant): {
-            std::string copy = util::strToUpper(token.original.substr(1));
-            if (constants.contains(copy)) return false;
-        }
-        case (urcl::token::name): {
-            if (original.definesDefs.contains(token.original)) {
-                const std::filesystem::path& newPath = original.definesDefs.at(token.original).first;
-                const urcl::source *newSrc;
-                if (original.includes.contains(newPath)) {
-                    newSrc = &original.includes.at(newPath);
-                } else {
-                    newSrc = &original;
-                }
-                const urcl::token *newToken = urcl::source::findNthOperand(newSrc->code[original.definesDefs.at(token.original).second], 2);
-                if (newToken == nullptr) {
-                    return false;
-                }
-                return newSrc->tokenIsRegister(*newToken, original);
-            }
+    }
+}
+
+bool urcl::source::tokenIsR0(const urcl::token& token, const urcl::source& original) const {
+    const urcl::token *trueTokenPtr = urcl::source::getBaseToken(token, original);
+    if (trueTokenPtr == nullptr) return false;
+    const urcl::token &trueToken = *trueTokenPtr;
+    switch (trueToken.type) {
+        case (urcl::token::reg): {
+            if (trueToken.original == "R0" || trueToken.original == "r0" || trueToken.original == "$0") return true;
             return false;
         }
         default: {

@@ -37,7 +37,7 @@ namespace urcl {
             std::optional<std::string> getHover(const lsp::Position& position, const urcl::config& config) const;
             std::vector<lsp::Location> getReferences(const lsp::Position& position, const lsp::DocumentUri& uri) const;
         private:
-            std::optional<std::string> getHover(const urcl::token& token, const urcl::config& config) const;
+            std::optional<std::string> getHover(const urcl::token& token, const urcl::config& config, bool inConst) const;
             std::vector<std::vector<token>> code;
             std::unordered_map<std::string, std::pair<urcl::object_id, urcl::line_number>> labelDefs;
             std::unordered_map<std::string, std::pair<std::filesystem::path, urcl::line_number>> definesDefs;
@@ -59,7 +59,9 @@ namespace urcl {
             
             bool tokenIsImmediate(const urcl::token& token, const urcl::source& original) const;
             bool tokenIsRegister(const urcl::token& token, const urcl::source& original) const;
+            bool tokenIsBlank(const urcl::token& token, const urcl::source& original) const;
             bool tokenIsR0(const urcl::token& token, const urcl::source& original) const;
+            const urcl::token *getBaseToken(const urcl::token& token, const urcl::source& original) const;
 
             std::vector<token> parseLine(const std::string& line, bool& inComment, const urcl::config& config) const;
             int resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
