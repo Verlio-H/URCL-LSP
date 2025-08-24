@@ -219,7 +219,13 @@ std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
     }
     long double integer;
     if (std::modfl(value, &integer) == 0) {
-        result += std::format("\\\n{:.1f}", value);
+        std::string option1 = std::format("\\\n{:.1LF}", value);
+        std::string option2 = std::format("\\\n{:Le}", value);
+        if (option1.length() <= option2.length()) {
+            result += option1;
+        } else {
+            result += option2;
+        }
     } else {
         result += std::format("\\\n{}", value);
     }
