@@ -340,6 +340,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                     case (urcl::token::name): {
                         if (definesDefs.contains(token.original)) break;
                         token.parse_error = "Undefined constant value";
+                        break;
                     }
                     case (urcl::token::escape): {
                         std::string escaped = token.original.substr(token.original.find('\\') + 1);
@@ -1174,7 +1175,7 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
                 double real = token.value.real;
                 return util::intHover(reinterpret_cast<int64_t &>(real), bits, config.useIris);
             }
-            return util::intHover(0, bits, config.useIris);
+            break;
         }
         case (urcl::token::character): {
             std::string character = token.original.substr(1);
