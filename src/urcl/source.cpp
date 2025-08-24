@@ -304,7 +304,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 continue;
             }
 
-            if (operand == 1 && inst == "@DEFINE") {
+            if (operand == 1 && inst == "@DEFINE" && token.original[0] == '@') {
                 std::string copy = util::strToUpper(token.original.substr(1));
                 if (this->constants.contains(copy)) {
                     token.parse_error = "Constant already defined by implementation";
