@@ -8,10 +8,15 @@ urcl::config::config() {}
 urcl::config::config(std::filesystem::path file, const std::filesystem::path& src) {
     std::ifstream in(file);
     std::string line;
-
+    
     useCore = true;
     useBasic = true;
     useComplex = true;
+    useStandard = false;
+    useIris = false;
+    useUrcx = false;
+    useUir = false;
+    useLowercase = false;
     bool foundIncludes = false;
 
     while (std::getline(in, line)) {
@@ -93,9 +98,11 @@ urcl::config::config(const std::filesystem::path file) {
     useCore = true;
     useBasic = true;
     useComplex = true;
+    useStandard = false;
     useIris = true;
     useUrcx = true;
     useUir = true;
+    useLowercase = false;
     std::filesystem::path path = file.parent_path();
     while (path != file.root_path()) {
         if (std::filesystem::exists(path / "lsp.txt")) {
