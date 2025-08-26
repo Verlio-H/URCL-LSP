@@ -181,7 +181,9 @@ void urcl::source::updateErrors(const urcl::config& config) {
     for (std::vector<urcl::token>& line : code) {
         bool expect = true;
         bool inArray = false;
+        bool inUir = false;
         int operand = -1;
+        int uirOperand = 0;
         uint32_t instColumn = 0;
         std::string_view inst;
         const std::vector<urcl::defines::op_type> *operands = nullptr;
@@ -193,7 +195,8 @@ void urcl::source::updateErrors(const urcl::config& config) {
 
             if (token.type == urcl::token::comment) continue;
 
-            if (!inArray) ++operand;
+            if (!inArray && !inUir) ++operand;
+            if (inUir) ++uirOperand;
             if (operand == 0 && (token.type == urcl::token::label || token.type == urcl::token::symbol)) {
                 if (token.original.length() >= 3 && token.original.substr(0, 3) == "!!!") {
                     currentObjId = nextObjId++;
@@ -231,7 +234,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 }
             }
 
-            if (!inArray && operands) {
+            if (!inArray && !inUir && operands) {
                 if (operands->size() < operand) {
                     if (inst != "@DEBUG") token.parse_error = "Too many operands in language construct";
                 } else if (operand != 0) {
@@ -298,10 +301,8 @@ void urcl::source::updateErrors(const urcl::config& config) {
 
             }
 
-            if (token.type == urcl::token::bracket && token.original == "[") {
-                if (inArray) token.parse_error = "Nested array arguments not allowed";
-                inArray = true;
-                continue;
+            if (inUir && token.type != urcl::token::uir && !tokenIsImmediate(token, *this)) {
+                token.parse_error = "UIR values must be immediates";
             }
 
             if (operand == 1 && inst == "@DEFINE" && token.original[0] == '@') {
@@ -315,10 +316,34 @@ void urcl::source::updateErrors(const urcl::config& config) {
                 bits = std::max(bits, (uint16_t)token.value.literal);
             }
 
+            if (inArray && token.parse_error == "" && !tokenIsImmediate(token, *this) && token.type != urcl::token::string) {
+                if (!((config.useIris || config.useUrcx) && (tokenIsR0(token, *this) || tokenIsBlank(token, *this)))) {
+                    token.parse_error = "Array contents must be immediate values";
+                }
+            }
+
             if (!expect) {
                 token.parse_error = "Extraneous token after language construct";
             } else {
                 switch (token.type) {
+                    case (urcl::token::uir): {
+                        if (token.original == "[") {
+                            inUir = true;
+                            uirOperand = 0;
+                        } else {
+                            inUir = false;
+                            if (uirOperand != 2) {
+                                token.parse_error = "UIR value must contain exactly one token";
+                            }
+                        }
+                        break;
+                    }
+                    case (urcl::token::bracket): {
+                        if (token.original != "[") break;
+                        if (inArray) token.parse_error = "Nested array arguments not allowed";
+                        inArray = true;
+                        break;
+                    }
                     case (urcl::token::label): {
                         if (!labelDefs.contains(token.original)) {
                             token.parse_error = "Undefined label";
@@ -361,15 +386,10 @@ void urcl::source::updateErrors(const urcl::config& config) {
                                 token.parse_error = "Invalid escape sequence";
                             }
                         }
+                        break;
                     }
                     default:
                         break;
-                }
-            }
-
-            if (inArray && token.parse_error == "" && !tokenIsImmediate(token, *this) && token.type != urcl::token::string) {
-                if (!((config.useIris || config.useUrcx) && (tokenIsR0(token, *this) || tokenIsBlank(token, *this)))) {
-                    token.parse_error = "Array contents must be immediate values";
                 }
             }
         }
@@ -378,6 +398,8 @@ void urcl::source::updateErrors(const urcl::config& config) {
             line[0].parse_error = "Too few operands in language construct";
         } else if (inArray && line[line.size() - 1].parse_error == "") {
             line[line.size() - 1].parse_error = "Unclosed array argument";
+        } else if (inUir && line[line.size() - 1].parse_error == "") {
+            line[line.size() - 1].parse_error = "Unclosed UIR value";
         }
     }
 }
@@ -390,8 +412,13 @@ std::vector<unsigned int> urcl::source::getTokens() const {
         const std::vector<urcl::token>& line = code[i];
         unsigned int prevChar = 0;
         int lengthDiff = 0;
+        bool inUir = false;
         for (const urcl::token& token : line) {
-            int tokenType = resolveTokenType(token, *this, this->constants);
+            if (token.type == urcl::token::uir) {
+                if (token.original == "[") inUir = true;
+                else inUir = false; 
+            }
+            int tokenType = resolveTokenType(inUir, token, *this, this->constants);
             if (tokenType < 0) continue;
             //result.reserve(5);
             result.push_back(i - prevLine);
@@ -558,6 +585,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
     bool inConstruct = false;
     std::vector<urcl::token> result{};
     bool otherToken = false;
+    bool inUir = false;
 
     bool runHeader = false;
     bool debugMacro = false;
@@ -578,6 +606,10 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             inComment = false;
             continue;
         }
+        if (!inConstruct && inUir && line[i] == ' ') {
+            result.back().parse_error = "Spaces not allowed in UIR value";
+        }
+
         if ((i == line.size() || util::isWhitespace(line[i])) || (inConstruct && (line[i] == '/' || line[i] == ']' || line[i] == '%'))) {
             if (!inConstruct) continue;
             if (inChar || inStr) {
@@ -656,6 +688,9 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                         } else {
                             name.erase(0, 2);
                         }
+                        if (inUir) {
+                            result.back().parse_error = "Relatives not allowed in UIR values";
+                        }
                         if (!util::isNumber(name)) {
                             result.back().parse_error = "Invalid integer in relative";
                         }
@@ -731,22 +766,6 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     }
                     case (urcl::token::mem):
                     case (urcl::token::reg): {
-
-                        if (name.starts_with("[M") || name.starts_with("[m") || name.starts_with("[#")) {
-                            if (!util::isNumber(name.substr(2))) {
-                                result.back().parse_error = "Invalid integer in memory address";
-                                result.back().type = urcl::token::name;
-                            } else if (line[i] != ']') {
-                                result.back().parse_error = "Unterminated uir memory reference";
-                                result.back().type = urcl::token::name;
-                            }
-                            if (line[i] == ']') {
-                                result.back().original += ']';
-                                ++i;
-                            }
-                            break;
-                        }
-
                         if (!util::isNumber(name.substr(1))) {
                             result.back().parse_error = result.back().type == urcl::token::reg ? "Invalid integer in register" : "Invalid integer in memory address";
                             result.back().type = urcl::token::name;
@@ -866,10 +885,16 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             inInst = true;
         } else if (line[i] == '~') {
             result.push_back({urcl::token::relative, "", "", 0, "", "", i});
-        } else if (!dw && line[i] == '[' && (line[i + 1] == 'M' || line[i + 1] == 'm' || line[i + 1] == '#')) {
-            result.push_back({urcl::token::reg, "", "", 0, "", "", i});
-            name = name + line[i + 1];
-            ++i;
+        } else if (config.useUir && !dw && line[i] == '[') {
+            result.push_back({urcl::token::uir, line.substr(i, 1), "", 0, "", "", i});
+            inConstruct = false;
+            if (inUir) result.back().parse_error = "Nested UIR values are not allowed";
+            inUir = true;
+        } else if (config.useUir && !dw && line[i] == ']') {
+            result.push_back({urcl::token::uir, line.substr(i, 1), "", 0, "", "", i});
+            inConstruct = false;
+            if (!inUir) result.back().parse_error = "UIR value closed before it was opened";
+            inUir = false;
         } else if (line[i] == '[' || line[i] == ']') {
             result.push_back({urcl::token::bracket, line.substr(i, 1), "", 0, "", "", i});
             inConstruct = false;
@@ -901,12 +926,14 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
     return result;
 }
 
-int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const {
+int urcl::source::resolveTokenType(bool inUir, const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const {
     int tokenType;
+    if (inUir) return 1;
     switch (token.type) {
         case (urcl::token::instruction):
             tokenType = 0;
             break;
+        case (urcl::token::uir):
         case (urcl::token::reg):
             tokenType = 1;
             break;
@@ -967,7 +994,7 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
                     tokenType = -1;
                     return tokenType;
                 }
-                tokenType = newSrc->resolveTokenType(*newToken, original, constants);
+                tokenType = newSrc->resolveTokenType(false, *newToken, original, constants);
                 if (tokenType == 9) tokenType = 8;
                 break;
             } else {
@@ -975,8 +1002,6 @@ int urcl::source::resolveTokenType(const urcl::token& token, const urcl::source&
             }
             break;
         }
-        default:
-            tokenType = -1;
     }
     return tokenType;
 }
@@ -1341,6 +1366,7 @@ bool urcl::source::tokenIsRegister(const urcl::token& token, const urcl::source&
     if (trueTokenPtr == nullptr) return false;
     const urcl::token &trueToken = *trueTokenPtr;
     switch (trueToken.type) {
+        case (urcl::token::uir):
         case (urcl::token::reg): {
             return true;
         }

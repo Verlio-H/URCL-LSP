@@ -24,7 +24,8 @@ namespace urcl {
                 comparison,
                 bracket,
                 comment,
-                port
+                port,
+                uir
             } type;
             std::string original;
             std::string strVal;

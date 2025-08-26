@@ -64,7 +64,7 @@ namespace urcl {
             const urcl::token *getBaseToken(const urcl::token& token, const urcl::source& original) const;
 
             std::vector<token> parseLine(const std::string& line, bool& inComment, const urcl::config& config) const;
-            int resolveTokenType(const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
+            int resolveTokenType(bool inUir, const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const;
 
             void updateDefinitions(urcl::source& code, const std::filesystem::path& loc, bool base);
     };
