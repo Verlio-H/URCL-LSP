@@ -65,10 +65,12 @@ Controls the availability of iris extensions
 A shortcut for urcx + iris
 ##### standard (disabled by default)
 Controls the enforcement of strict standard compliance
-##### uir (disaled by default)
-Controls the availability of uir in files without the .uir extension
 ##### lowercase (disabled by default)
 Controls the use of lowercase letters for text completion of case insensitive values
+##### uir (disaled by default)
+Controls the availability of uir in files without the .uir extension
+##### regs (enabled by default)
+Controls the ability to use registers (disabled in .uir files)
 
 #### Include Line
 An include line specifies a group of urcl files that will be linked together at link time. The language server will use the first include line in the config file that contains the active file to resolve definitions that span across multiple files. 

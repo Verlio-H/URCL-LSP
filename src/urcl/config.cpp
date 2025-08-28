@@ -15,8 +15,9 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
     useStandard = false;
     useIris = false;
     useUrcx = false;
-    useUir = false;
     useLowercase = false;
+    useUir = false;
+    useRegs = true;
     bool foundIncludes = false;
 
     while (std::getline(in, line)) {
@@ -51,6 +52,8 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
                     useIris = set;
                 } else if (value == "lowercase") {
                     useLowercase = set;
+                } else if (value == "regs") {
+                    useRegs = set;
                 } else if (value == "uir") {
                     useUir = set;
                 }
@@ -101,8 +104,9 @@ urcl::config::config(const std::filesystem::path file) {
     useStandard = false;
     useIris = true;
     useUrcx = true;
-    useUir = true;
     useLowercase = false;
+    useUir = true;
+    useRegs = true;
     std::filesystem::path path = file.parent_path();
     while (path != file.root_path()) {
         if (std::filesystem::exists(path / "lsp.txt")) {
@@ -113,12 +117,16 @@ urcl::config::config(const std::filesystem::path file) {
             this->useStandard = trueConfig.useStandard;
             this->useIris = trueConfig.useIris;
             this->useUrcx = trueConfig.useUrcx;
-            this->useUir = trueConfig.useUir;
             this->useLowercase = trueConfig.useLowercase;
+            this->useUir = trueConfig.useUir;
+            this->useRegs = trueConfig.useRegs;
             this->includes = std::move(trueConfig.includes);
-            if (file.extension() == ".uir") this->useUir = true;
-            return;
+            break;
         }
         path = path.parent_path();
+    }
+    if (file.extension() == ".uir") {
+        this->useUir = true;
+        this->useRegs = false;
     }
 }

@@ -766,6 +766,10 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                     }
                     case (urcl::token::mem):
                     case (urcl::token::reg): {
+                        if (result.back().type == urcl::token::reg && !config.useRegs) {
+                            result.back().parse_error = "Registers not allowed";
+                            break;
+                        }
                         if (!util::isNumber(name.substr(1))) {
                             result.back().parse_error = result.back().type == urcl::token::reg ? "Invalid integer in register" : "Invalid integer in memory address";
                             result.back().type = urcl::token::name;
