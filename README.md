@@ -28,7 +28,10 @@ To build:
 To install:
 `cmake --install build` 
 
-Installation requires elevated permissions (use sudo or on windows run the command prompt as administrator).
+Installation requires elevated permissions.
+
+This project does not seem to compile in msvc.
+Prebuilt binaries are available in the Actions tab on github.
 
 ## Dependencies
 
