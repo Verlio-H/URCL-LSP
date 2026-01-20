@@ -17,10 +17,35 @@ std::vector<std::string> splitString(std::string &str) {
     std::stringstream stream(str);
     std::string line;
 
-    bool inComment = false;
-    while (std::getline(stream, line, '\n')) {
+    while (std::getline(stream, line)) {
+        if (line.ends_with("\r")) line.erase(line.end());
         result.emplace_back(line);
     }
+    if (str.ends_with("\n")) {
+        result.emplace_back("");
+    }
+    return result;
+}
+
+std::vector<std::string> replaceRange(const std::vector<std::string> &str, lsp::Range range, const std::vector<std::string> &newVal) {
+    std::vector<std::string> result(str.begin(), str.begin() + range.start.line);
+    if (newVal.size() <= 1) {
+        std::string insertion;
+        if (newVal.size() == 0) {
+            insertion = "";
+        } else {
+            insertion = newVal.at(0);
+        }
+        std::string start = str.at(range.start.line).substr(0, range.start.character);
+        std::string end = str.at(range.end.line).substr(range.end.character);
+        result.emplace_back(start + insertion + end);
+    } else {
+        result.emplace_back(str.at(range.start.line).substr(0, range.start.character).append(newVal.at(0)));
+        result.insert(result.end(), newVal.begin() + 1, newVal.end() - 1);
+        std::string final_line = *(newVal.end() - 1);
+        result.emplace_back(final_line.append(str.at(range.end.line).substr(range.end.character)));
+    }
+    result.insert(result.end(), str.begin() + range.end.line + 1, str.end());
     return result;
 }
 
@@ -43,7 +68,7 @@ int main(int argc, char *argv[]) {
             return lsp::requests::Initialize::Result{
                 .capabilities = {
                     .positionEncoding = lsp::PositionEncodingKind::UTF16,
-                    .textDocumentSync = lsp::TextDocumentSyncOptions(true, lsp::TextDocumentSyncKind::Full, true),
+                    .textDocumentSync = lsp::TextDocumentSyncOptions(true, lsp::TextDocumentSyncKind::Incremental, false, false, true),
                     .completionProvider = lsp::CompletionOptions{true, {{".", "@", "!", "%"}}},
                     .hoverProvider = true,
                     .definitionProvider = true,
@@ -75,8 +100,8 @@ int main(int argc, char *argv[]) {
             config.erase(str);
             documents.erase(str);
         }
-    ).add<lsp::notifications::TextDocument_WillSave>(
-        [&code, &config, &documents, &messageHandler](lsp::notifications::TextDocument_WillSave::Params&& params) {
+    ).add<lsp::notifications::TextDocument_DidSave>(
+        [&code, &config, &documents, &messageHandler](lsp::notifications::TextDocument_DidSave::Params&& params) {
             std::filesystem::path str = params.textDocument.uri.path();
             config[str] = str;
 
@@ -90,14 +115,24 @@ int main(int argc, char *argv[]) {
     ).add<lsp::notifications::TextDocument_DidChange>(
         [&code, &config, &documents](lsp::notifications::TextDocument_DidChange::Params&& params) {
             for (lsp::TextDocumentContentChangeEvent change : params.contentChanges) {
-                lsp::TextDocumentContentChangeEvent_Text fullChange = std::get<lsp::TextDocumentContentChangeEvent_Text>(change);
-                std::vector<std::string> document = splitString(fullChange.text);
                 std::filesystem::path str = params.textDocument.uri.path();
-                code[str] = urcl::source(document, config[str]);
-                code[str].updateReferences(code, config[str]);
-                code[str].updateDefinitions(str, config[str]);
-                code[str].updateErrors(config[str]);
-                documents[str] = std::move(document);
+                if (std::holds_alternative<lsp::TextDocumentContentChangeEvent_Text>(change)) {
+                    lsp::TextDocumentContentChangeEvent_Text fullChange = std::get<lsp::TextDocumentContentChangeEvent_Text>(change);
+                    std::vector<std::string> document = splitString(fullChange.text);
+                    code[str] = urcl::source(document, config[str]);
+                    code[str].updateReferences(code, config[str]);
+                    code[str].updateDefinitions(str, config[str]);
+                    code[str].updateErrors(config[str]);
+                    documents[str] = std::move(document);
+                } else {
+                    lsp::TextDocumentContentChangeEvent_Range_Text rangeChange = std::get<lsp::TextDocumentContentChangeEvent_Range_Text>(change);
+                    std::vector<std::string> newContents = splitString(rangeChange.text);
+                    documents[str] = replaceRange(documents[str], rangeChange.range, newContents);
+                    code[str] = urcl::source(documents[str], config[str]);
+                    code[str].updateReferences(code, config[str]);
+                    code[str].updateDefinitions(str, config[str]);
+                    code[str].updateErrors(config[str]);
+                }
             }
         }
     ).add<lsp::requests::TextDocument_SemanticTokens_Full>(
