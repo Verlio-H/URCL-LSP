@@ -59,6 +59,8 @@ std::vector<std::string> replaceRange(const std::vector<std::string> &str, lsp::
     return result;
 }
 
+bool running = false;
+
 int main(int argc, char *argv[]) {
     lsp::Connection connection = lsp::Connection(lsp::io::standardIO());
     lsp::MessageHandler messageHandler = lsp::MessageHandler(connection);
@@ -195,9 +197,18 @@ int main(int argc, char *argv[]) {
             std::filesystem::path str = params.textDocument.uri.path();
             return lsp::requests::TextDocument_References::Result{code[str].getReferences(params.position, params.textDocument.uri)};
         }
+    ).add<lsp::requests::Shutdown>(
+        [](){
+            return lsp::requests::Shutdown::Result();
+        }
+    ).add<lsp::notifications::Exit>(
+        [](){
+            running = false;
+        }
     );
     
-    while (true) {
+    running = true;
+    while (running) {
         messageHandler.processIncomingMessages();
     }
 
