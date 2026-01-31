@@ -2,10 +2,13 @@
 #define UTIL_H
 
 #include <string>
+#include <string_view>
 #include <cstdint>
 
 namespace util {
     size_t utf8len(const char* str);
+
+    size_t utf16index(std::string_view str, size_t idx);
 
     bool isWhitespace(char character);
 
@@ -35,7 +38,7 @@ namespace util {
 
     std::string to_utf8(char32_t codepoint);
 
-    uint32_t from_utf8(std::string input);
+    uint32_t from_utf8(std::string_view input);
 
     long double irisToFloat(uint16_t input);
 

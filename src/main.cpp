@@ -6,9 +6,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <string_view>
+#include <ranges>
 
 #include "urcl/source.h"
 #include "urcl/config.h"
+#include "util.h"
 
 typedef unsigned int uint;
 
@@ -29,21 +32,28 @@ std::vector<std::string> splitString(std::string &str) {
 
 std::vector<std::string> replaceRange(const std::vector<std::string> &str, lsp::Range range, const std::vector<std::string> &newVal) {
     std::vector<std::string> result(str.begin(), str.begin() + range.start.line);
+    std::string_view start_line = str.at(range.start.line);
+    std::string_view end_line = str.at(range.end.line);
     if (newVal.size() <= 1) {
-        std::string insertion;
+        std::string_view insertion;
         if (newVal.size() == 0) {
             insertion = "";
         } else {
             insertion = newVal.at(0);
         }
-        std::string start = str.at(range.start.line).substr(0, range.start.character);
-        std::string end = str.at(range.end.line).substr(range.end.character);
-        result.emplace_back(start + insertion + end);
+        std::string_view start = start_line.substr(0, util::utf16index(start_line, range.start.character));
+        std::string_view end = end_line.substr(util::utf16index(end_line, range.end.character));
+        auto joined = std::array{start, insertion, end} | std::views::join;
+        result.emplace_back(joined.begin(), joined.end());
     } else {
-        result.emplace_back(str.at(range.start.line).substr(0, range.start.character).append(newVal.at(0)));
+        std::string_view first_part = start_line.substr(0, util::utf16index(start_line, range.start.character));
+        auto first_joined = std::array{first_part, (std::string_view)newVal.at(0)} | std::views::join;
+        result.emplace_back(first_joined.begin(), first_joined.end());
         result.insert(result.end(), newVal.begin() + 1, newVal.end() - 1);
-        std::string final_line = *(newVal.end() - 1);
-        result.emplace_back(final_line.append(str.at(range.end.line).substr(range.end.character)));
+        std::string_view final_line = *(newVal.end() - 1);
+        std::string_view last_part = end_line.substr(util::utf16index(end_line, range.end.character));
+        auto last_joined = std::array{final_line, last_part} | std::views::join;
+        result.emplace_back(last_joined.begin(), last_joined.end());
     }
     result.insert(result.end(), str.begin() + range.end.line + 1, str.end());
     return result;

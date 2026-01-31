@@ -5,6 +5,7 @@
 #include <string>
 #include <format>
 #include <cmath>
+#include <string_view>
 
 size_t util::utf8len(const char* str) {
     size_t len = 0;
@@ -12,9 +13,27 @@ size_t util::utf8len(const char* str) {
         int v01 = ((*str & 0x80) >> 7) & ((*str & 0x40) >> 6);
         int v2 = (*str & 0x20) >> 5;
         int v3 = (*str & 0x10) >> 4;
+        if (v01 && v3) ++len;
         str += 1 + ((v01 << v2) | (v01 & v3));
     }
     return len;
+}
+
+size_t util::utf16index(std::string_view str, size_t idx) {
+    for (size_t i = 0; i < str.length(); ++i, --idx) {
+        if (idx <= 0) return i;
+        char32_t codepoint = util::from_utf8(str.substr(i));
+        if (codepoint > 0xFFFF) {
+            i += 3;
+            --idx;
+            if (idx == 0) throw std::runtime_error("index in middle of utf 16 surrogate");
+        } else if (codepoint > 0x7FF) {
+            i += 2;
+        } else if (codepoint > 0x7F) {
+            ++i;
+        }
+    }
+    return str.length();
 }
 
 bool util::isWhitespace(char character) {
@@ -115,7 +134,7 @@ std::string util::to_utf8(char32_t codepoint) {
     return std::string(array);
 }
 
-uint32_t util::from_utf8(std::string input) {
+uint32_t util::from_utf8(std::string_view input) {
     uint32_t result;
     if ((unsigned char)input[0] >= 0xF0) { // 4 byte
         result = (input[0] & 0x7) << 18;
