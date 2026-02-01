@@ -49,9 +49,8 @@ jobs:
         install:
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-ninja
-          mingw-w64-x86_64-clang
-          mingw-w64-x86_64-lld
-          mingw-w64-x86_64-libc++
+          mingw-w64-uart-x86_64-clang
+          mingw-w64-uart-x86_64-lld
           
     - name: Move MinGW to PATH
       shell: bash
