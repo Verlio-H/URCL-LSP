@@ -23,8 +23,8 @@ jobs:
         c_compiler: [gcc, clang]
         include:
           - os: windows-latest
-            c_compiler: gcc
-            cpp_compiler: g++
+            c_compiler: clang
+            cpp_compiler: clang++
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
@@ -33,7 +33,7 @@ jobs:
             cpp_compiler: clang++
         exclude:
           - os: windows-latest
-            c_compiler: clang
+            c_compiler: gcc
           - os: macos-latest
             c_compiler: gcc
           - os: ubuntu-latest
@@ -49,6 +49,8 @@ jobs:
         install:
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-ninja
+          mingw-w64-ucrt-x86_64-clang
+          mingw-w64-ucrt-x86_64-lld
           
     - name: Move MinGW to PATH
       shell: bash
