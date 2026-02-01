@@ -229,14 +229,14 @@ std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
         value = util::irisToFloat(numb);
     } else if (bits == 32 && sizeof(float) == sizeof(uint32_t)) {
         uint32_t shortenedVal = numb;
-        value = reinterpret_cast<float &>(shortenedVal);
+        memcpy(&value, &shortenedVal, sizeof(shortenedVal));
     } else if (bits == 64 && sizeof(double) == sizeof(int64_t)) {
-        value = reinterpret_cast<double &>(numb);
+        memcpy(&value, &numb, sizeof(numb));
     } else {
         return result;
     }
     long double integer;
-    if (std::modfl(value, &integer) == 0) {
+    if (std::modf(value, &integer) == 0) {
         std::string option1 = std::format("\\\n{:.1LF}", value);
         std::string option2 = std::format("\\\n{:Le}", value);
         if (option1.length() <= option2.length()) {
