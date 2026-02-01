@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <format>
 #include <cmath>
