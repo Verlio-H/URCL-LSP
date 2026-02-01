@@ -16,19 +16,6 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable(lsp)
-target_compile_options(lsp PUBLIC
-    -Wall
-    -Wextra
-    -pedantic
-    -O3
-    -g
-    -fsanitize=address
-)
-
-target_link_options(lsp PUBLIC
-    -g
-    -fsanitize=address
-)
 
 file(GLOB_RECURSE URCL_LSP_SOURCES CONFIGURE_DEPENDS
   src/*.cpp
@@ -43,13 +30,6 @@ target_compile_options(urcl-lsp PRIVATE
     -Wextra
     -pedantic
     -O3
-    -g
-    -fsanitize=address
-)
-
-target_link_options(urcl-lsp PRIVATE
-    -g
-    -fsanitize=address
 )
 
 target_link_libraries(urcl-lsp PUBLIC lsp)
