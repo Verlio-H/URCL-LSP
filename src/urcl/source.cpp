@@ -263,6 +263,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                         case (urcl::defines::op_type::comparison): {
                             if (token.type == urcl::token::comparison) break;
                             ++operand;
+                            [[fallthrough]];
                         }
                         case (urcl::defines::op_type::imm): {
                             if (!tokenIsImmediate(token, *this)) {
@@ -360,6 +361,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
                     case (urcl::token::constant): {
                         std::string copy = util::strToUpper(token.original.substr(1));
                         if (this->constants.contains(copy)) break;
+                        [[fallthrough]];
                     }
                     case (urcl::token::name): {
                         if (definesDefs.contains(token.original)) break;
@@ -469,6 +471,7 @@ std::optional<lsp::Location> urcl::source::getDefinitionRange(const lsp::Positio
         case (urcl::token::constant): {
             std::string copy = util::strToUpper(token.original.substr(1));
             if (constants.contains(copy)) return {};
+            [[fallthrough]];
         }
         case (urcl::token::name): {
             if (!definesDefs.contains(token.original)) return {};
@@ -751,7 +754,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                             int64_t value;
                             try {
                                 value = std::stoll(name, nullptr, base);
-                            } catch (std::exception e) {
+                            } catch (std::exception) {
                                 value = 0;
                             }
                             result.back().value.literal = value * sign;
@@ -929,7 +932,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 }
 
 int urcl::source::resolveTokenType(bool inUir, const urcl::token& token, const urcl::source& original, const std::unordered_set<std::string>& constants) const {
-    int tokenType;
+    int tokenType = 0;
     if (inUir) return 1;
     switch (token.type) {
         case (urcl::token::instruction):
@@ -981,6 +984,7 @@ int urcl::source::resolveTokenType(bool inUir, const urcl::token& token, const u
                 tokenType = 7;
                 break;
             }
+            [[fallthrough]];
         }
         case (urcl::token::name): {
             if (original.definesDefs.contains(token.original)) {
@@ -1197,10 +1201,14 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
                 return util::intHover(util::floatToIris(token.value.real), bits, config.useIris);
             } else if (bits == 32 && sizeof(float) == sizeof(uint32_t)) {
                 float real = token.value.real;
-                return util::intHover(reinterpret_cast<uint32_t &>(real), bits, config.useIris);
+                uint32_t integer;
+                memcpy(&integer, &real, sizeof(real));
+                return util::intHover(integer, bits, config.useIris);
             } else if (bits == 64 && sizeof(double) == sizeof(int64_t)) {
                 double real = token.value.real;
-                return util::intHover(reinterpret_cast<int64_t &>(real), bits, config.useIris);
+                int64_t integer;
+                memcpy(&integer, &real, sizeof(real));
+                return util::intHover(integer, bits, config.useIris);
             }
             break;
         }
@@ -1260,6 +1268,7 @@ std::optional<std::string> urcl::source::getHover(const urcl::token& token, cons
                 if (inConst) return token.original;
                 break;
             }
+            [[fallthrough]];
         }
         case (urcl::token::name): {
             if (definesDefs.contains(token.original)) {
@@ -1339,6 +1348,7 @@ const urcl::token *urcl::source::getBaseToken(const urcl::token& token, const ur
         case (urcl::token::constant): {
             std::string copy = util::strToUpper(token.original.substr(1));
             if (constants.contains(copy)) return &token;
+            [[fallthrough]];
         }
         case (urcl::token::name): {
             if (original.definesDefs.contains(token.original)) {
@@ -1385,6 +1395,7 @@ bool urcl::source::tokenIsImmediate(const urcl::token& token, const urcl::source
     switch (trueToken.type) {
         case (urcl::token::literal):
             if (trueToken.original == "_") return false;
+            [[fallthrough]];
         case (urcl::token::character):
         case (urcl::token::escape):
         case (urcl::token::label):

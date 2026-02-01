@@ -33,6 +33,7 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
             }
             case ('-'): // remove config option
                 set = false;
+                [[fallthrough]];
             case ('+'): { // add config option
                 std::string_view value = std::string_view(line).substr(1);
                 if (value == "core") {

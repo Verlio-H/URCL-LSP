@@ -194,20 +194,28 @@ std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
         switch (numb) {
             case ('\''):
                 result = "'\\''\\\n";
+                break;
             case ('\n'):
                 result = "'\\n'\\\n";
+                break;
             case ('\r'):
                 result = "'\\r'\\\n";
+                break;
             case ('\t'):
                 result = "'\\t'\\\n";
+                break;
             case ('\b'):
                 result = "'\\b'\\\n";
+                break;
             case ('\f'):
                 result = "'\\f'\\\n";
+                break;
             case ('\v'):
                 result = "'\\v'\\\n";
+                break;
             case ('\0'):
                 result = "'\\0'\\\n";
+                break;
             default:
                 break;
         }
