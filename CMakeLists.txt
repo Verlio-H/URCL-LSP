@@ -21,7 +21,7 @@ target_compile_options(lsp PRIVATE
     -fsanitize=address
 )
 
-target_link_options(urcl-lsp PRIVATE
+target_link_options(lsp PRIVATE
     -fsanitize=address
 )
 
