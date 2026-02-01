@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string_view>
-#include <ranges>
+//#include <ranges>
 
 #include "urcl/source.h"
 #include "urcl/config.h"
@@ -43,17 +43,20 @@ std::vector<std::string> replaceRange(const std::vector<std::string> &str, lsp::
         }
         std::string_view start = start_line.substr(0, util::utf16index(start_line, range.start.character));
         std::string_view end = end_line.substr(util::utf16index(end_line, range.end.character));
-        auto joined = std::to_array<std::string_view>({start, insertion, end}) | std::views::join;
-        result.emplace_back(joined.begin(), joined.end());
+        result.push_back(std::string(start) + std::string(insertion) + std::string(end));
+        // auto joined = std::array{start, insertion, end} | std::views::join;
+        // result.emplace_back(joined.begin(), joined.end());
     } else {
         std::string_view first_part = start_line.substr(0, util::utf16index(start_line, range.start.character));
-        auto first_joined = std::to_array<std::string_view>({first_part, (std::string_view)newVal.at(0)}) | std::views::join;
-        result.emplace_back(first_joined.begin(), first_joined.end());
+        // auto first_joined = std::array{first_part, (std::string_view)newVal.at(0)} | std::views::join;
+        // result.emplace_back(first_joined.begin(), first_joined.end());
+        result.push_back(std::string(first_part) + newVal.at(0));
         result.insert(result.end(), newVal.begin() + 1, newVal.end() - 1);
         std::string_view final_line = *(newVal.end() - 1);
         std::string_view last_part = end_line.substr(util::utf16index(end_line, range.end.character));
-        auto last_joined = std::to_array<std::string_view>({final_line, last_part}) | std::views::join;
-        result.emplace_back(last_joined.begin(), last_joined.end());
+        result.push_back(std::string(final_line) + std::string(last_part));
+        // auto last_joined = std::array{final_line, last_part} | std::views::join;
+        // result.emplace_back(last_joined.begin(), last_joined.end());
     }
     result.insert(result.end(), str.begin() + range.end.line + 1, str.end());
     return result;
