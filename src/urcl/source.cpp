@@ -6,6 +6,7 @@
 #include <fstream>
 #include <lsp/types.h>
 #include <string>
+#include <cstring>
 #include <cuchar>
 
 typedef unsigned int uint;
