@@ -25,9 +25,6 @@ jobs:
           - os: windows-latest
             c_compiler: clang
             cpp_compiler: clang++
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++
@@ -39,6 +36,8 @@ jobs:
             c_compiler: gcc
           - os: macos-latest
             c_compiler: gcc
+          - os: ubuntu-latest
+            c_compiler: clang
 
     steps:
 
