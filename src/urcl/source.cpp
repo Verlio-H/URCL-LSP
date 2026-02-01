@@ -755,7 +755,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                             int64_t value;
                             try {
                                 value = std::stoll(name, nullptr, base);
-                            } catch (std::exception) {
+                            } catch (std::exception&) {
                                 value = 0;
                             }
                             result.back().value.literal = value * sign;
