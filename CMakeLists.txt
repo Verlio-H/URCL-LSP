@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
+
+set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+
 project(urcl-lsp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -13,7 +16,21 @@ FetchContent_Declare(
   GIT_TAG        master
 )
 
+
 FetchContent_MakeAvailable(lsp)
+target_compile_options(lsp PUBLIC
+    -Wall
+    -Wextra
+    -pedantic
+    -O3
+    -g
+    -fsanitize=address
+)
+
+target_link_options(lsp PUBLIC
+    -g
+    -fsanitize=address
+)
 
 file(GLOB_RECURSE URCL_LSP_SOURCES CONFIGURE_DEPENDS
   src/*.cpp
@@ -23,6 +40,19 @@ file(GLOB_RECURSE URCL_LSP_SOURCES CONFIGURE_DEPENDS
 add_executable(urcl-lsp ${URCL_LSP_SOURCES})
 target_include_directories(urcl-lsp PUBLIC ${lsp_SOURCE_DIR})
 target_include_directories(urcl-lsp PUBLIC ${lsp_BINARY_DIR}/generated)
+target_compile_options(urcl-lsp PRIVATE
+    -Wall
+    -Wextra
+    -pedantic
+    -O3
+    -g
+    -fsanitize=address
+)
+
+target_link_options(urcl-lsp PRIVATE
+    -g
+    -fsanitize=address
+)
 
 target_link_libraries(urcl-lsp PUBLIC lsp)
 get_target_property(APP_INCLUDE_DIRS urcl-lsp INCLUDE_DIRECTORIES)
