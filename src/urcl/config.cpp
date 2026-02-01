@@ -63,7 +63,7 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
                 if (foundIncludes) continue;
                 std::vector<std::filesystem::path> paths;
                 while (line != "") {
-                    int end;
+                    size_t end;
                     for (end = 0; end < line.length(); ++end) {
                         if (line[end] == '\\' && end < line.length() - 1 && line[end + 1] == ' ') {
                             ++end;
@@ -83,7 +83,7 @@ urcl::config::config(std::filesystem::path file, const std::filesystem::path& sr
 
                     paths.push_back(file.parent_path()/pathEnd);
                 }
-                for (int i = 0; i < paths.size(); ++i) {
+                for (size_t i = 0; i < paths.size(); ++i) {
                     std::filesystem::path& path = paths[i];
                     if (std::filesystem::exists(path) && std::filesystem::equivalent(path, src)) {
                         paths.erase(paths.begin() + i);

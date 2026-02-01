@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     }
 
     messageHandler.add<lsp::requests::Initialize>(
-        [escaped](lsp::requests::Initialize::Params&& params) {
+        [escaped](lsp::requests::Initialize::Params&&) {
             return lsp::requests::Initialize::Result{
                 .capabilities = {
                     .positionEncoding = lsp::PositionEncodingKind::UTF16,
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
             }
         }
     ).add<lsp::requests::TextDocument_SemanticTokens_Full>(
-        [&code, &config, &messageHandler](lsp::requests::TextDocument_SemanticTokens_Full::Params&& params) {
+        [&code, &messageHandler](lsp::requests::TextDocument_SemanticTokens_Full::Params&& params) {
             std::filesystem::path str = params.textDocument.uri.path();
             std::vector<uint> tokens = code[str].getTokens();
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
                 result = {loc.value()};
                 return result;
             }
-            result.emplace({(std::vector<lsp::LocationLink>){(lsp::LocationLink){loc->uri, loc->range, loc->range, {sourceRange}}}});
+            result.emplace({std::vector<lsp::LocationLink>{lsp::LocationLink{loc->uri, loc->range, loc->range, {sourceRange}}}});
             return result;
         }
     ).add<lsp::requests::TextDocument_FoldingRange>(

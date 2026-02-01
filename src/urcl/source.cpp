@@ -6,7 +6,6 @@
 #include <fstream>
 #include <lsp/types.h>
 #include <string>
-#include <clocale>
 #include <cuchar>
 
 typedef unsigned int uint;
@@ -94,17 +93,17 @@ void urcl::source::updateDefinitions(urcl::source& code, const std::filesystem::
     urcl::object_id nextObjId = 1;
     urcl::object_id currentObjId = 0;
     urcl::source& source = *this;
-    for (int i = 0; i < code.code.size(); ++i) {
+    for (size_t i = 0; i < code.code.size(); ++i) {
         std::vector<urcl::token>& line = code.code[i];
         bool exit = false;
-        for (int k = 0; k < line.size(); ++k) {
+        for (size_t k = 0; k < line.size(); ++k) {
             urcl::token& token = line[k];
             if (exit) break;
             switch (token.type) {
                 case (urcl::token::macro):
                     exit = true;
                     if (token.strVal != "@DEFINE") break;
-                    for (int j = k + 1; j < line.size(); ++j) {
+                    for (size_t j = k + 1; j < line.size(); ++j) {
                         if (line[j].type == urcl::token::comment) continue;
                         source.definesDefs[line[j].original] = {loc, i};
                         break;
@@ -144,7 +143,7 @@ void urcl::source::updateDefinitions(urcl::source& code, const std::filesystem::
                         exit = true;
                         break;
                     }
-                    for (int j = k + 1; j < line.size(); ++j) {
+                    for (size_t j = k + 1; j < line.size(); ++j) {
                         if (line[j].type == urcl::token::comment) continue;
                         if (line[j].type == urcl::token::comparison) continue;
                         if (line[j].value.literal > UINT16_MAX) break;
@@ -235,7 +234,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
             }
 
             if (!inArray && !inUir && operands) {
-                if (operands->size() < operand) {
+                if (operand >= 0 && operands->size() < (size_t)operand) {
                     if (inst != "@DEBUG") token.parse_error = "Too many operands in language construct";
                 } else if (operand != 0) {
                     urcl::defines::op_type op = operands->at(operand - 1);
@@ -394,7 +393,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
             }
         }
         if (line.size() == 0) continue;
-        if (operands && line[0].parse_error == "" && operands->size() > operand && inst != "@DEBUG") {
+        if (operands && line[0].parse_error == "" && (operand < 0 || operands->size() > (size_t)operand) && inst != "@DEBUG") {
             line[0].parse_error = "Too few operands in language construct";
         } else if (inArray && line[line.size() - 1].parse_error == "") {
             line[line.size() - 1].parse_error = "Unclosed array argument";
@@ -408,7 +407,7 @@ void urcl::source::updateErrors(const urcl::config& config) {
 std::vector<unsigned int> urcl::source::getTokens() const {
     std::vector<unsigned int> result;
     unsigned int prevLine = 0;
-    for (int i = 0; i < code.size(); ++i) {
+    for (size_t i = 0; i < code.size(); ++i) {
         const std::vector<urcl::token>& line = code[i];
         unsigned int prevChar = 0;
         int lengthDiff = 0;
@@ -511,7 +510,6 @@ std::optional<lsp::Range> urcl::source::getTokenRange(const lsp::Position& posit
     unsigned int column = position.character;
     int idx = columnToIdx(code[row], column);
     if (idx < 0) return {};
-    lsp::Range result;
     const urcl::token& token = code[row][idx];
     unsigned int newColumn = idxToColumn(code[row], idx);
     return {{{row, newColumn}, {row, static_cast<uint>(newColumn + util::utf8len(token.original.c_str()))}}};
@@ -534,8 +532,8 @@ std::vector<lsp::FoldingRange> urcl::source::getFoldingRanges() const {
 }
 
 int urcl::source::iFindNthOperand(const std::vector<urcl::token>& code, unsigned int operand) {
-    int counter = 0;
-    for (int i = 0; i < code.size(); ++i) {
+    unsigned int counter = 0;
+    for (size_t i = 0; i < code.size(); ++i) {
         const urcl::token& token = code[i];
         if (token.type == urcl::token::comment) continue;
         if (counter == operand) {
@@ -552,10 +550,10 @@ const urcl::token *urcl::source::findNthOperand(const std::vector<urcl::token>& 
     return &code[idx];
 }
 
-int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int column) {
+size_t urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int column) {
     if (line.size() <= 0) return -1;
     unsigned int col = line[0].column;
-    int i;
+    size_t i;
     for (i = 0; i < line.size(); ++i) {
         col += util::utf8len(line[i].original.c_str());
         if (i < line.size() - 1) {
@@ -563,13 +561,13 @@ int urcl::source::columnToIdx(const std::vector<urcl::token>& line, unsigned int
         }
         if (col > column) break;
     }
-    if (i >= line.size()) i = -1;
+    if (i >= line.size()) i = line.size();
     return i;
 }
 
 unsigned int urcl::source::idxToColumn(const std::vector<urcl::token>& line, unsigned int idx) {
     unsigned int column = line[0].column;
-    for (int i = 0; i < idx; ++i) {
+    for (size_t i = 0; i < idx; ++i) {
         column += util::utf8len(line[i].original.c_str());
         column += line[i + 1].column - line[i].column - line[i].original.length(); // whitespace
     }
@@ -597,7 +595,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
             end = line.length() - 1;
         }
         ++end;
-        result.push_back({urcl::token::comment, line.substr(0, end + 1), "", 0, "", "", 0});
+        result.push_back({urcl::token::comment, line.substr(0, end + 1), "", {0}, "", "", 0});
     }
     for (uint32_t i = 0; i <= line.size(); ++i) {
         if (inComment) {
@@ -787,9 +785,9 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
         if (inStr && line[i] == '\\') {
             result.back().original = name;
-            result.push_back({urcl::token::escape, line.substr(i, 2), "", 0, "", "", i});
+            result.push_back({urcl::token::escape, line.substr(i, 2), "", {0}, "", "", i});
             ++i;
-            result.push_back({urcl::token::string, "", "", 0, "", "", i + 1});
+            result.push_back({urcl::token::string, "", "", {0}, "", "", i + 1});
             name = "";
             continue;
         }
@@ -822,7 +820,7 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
         }
 
         if (line[i] == '/' && line[i + 1] == '/') {
-            result.push_back({urcl::token::comment, line.substr(i), "", 0, "", "", i});
+            result.push_back({urcl::token::comment, line.substr(i), "", {0}, "", "", i});
             break;
         }
 
@@ -832,20 +830,20 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
                 end = line.length() - 1;
             }
             ++end;
-            result.push_back({urcl::token::comment, line.substr(i, end - i + 1), "", 0, "", "", i});
+            result.push_back({urcl::token::comment, line.substr(i, end - i + 1), "", {0}, "", "", i});
             inComment = true;
             ++i;
             continue;
         }
 
         if (line[i] == '.') {
-            result.push_back({urcl::token::label, "", "", 0, "", "", i});
+            result.push_back({urcl::token::label, "", "", {0}, "", "", i});
             name = line[i];
             inConstruct = true;
             otherToken = true;
             continue;
         } else if (line[i] == '!') {
-            result.push_back({urcl::token::symbol, "", "", 0, "", "", i});
+            result.push_back({urcl::token::symbol, "", "", {0}, "", "", i});
             name = line[i];
             inConstruct = true;
             otherToken = true;
@@ -854,9 +852,9 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
         if (!otherToken) {
             if (line[i] == '@') {
-                result.push_back({urcl::token::macro, "", "", 0, "", "", i});
+                result.push_back({urcl::token::macro, "", "", {0}, "", "", i});
             } else {
-                result.push_back({urcl::token::instruction, "", "", 0, "", "", i});
+                result.push_back({urcl::token::instruction, "", "", {0}, "", "", i});
             }
             name = line[i];
             inConstruct = true;
@@ -871,51 +869,51 @@ std::vector<urcl::token> urcl::source::parseLine(const std::string& line, bool& 
 
         name = line[i];
         if (line[i] == 'R' || line[i] == 'r' || line[i] == '$') {
-            result.push_back({urcl::token::reg, "", "", 0, "", "", i});
+            result.push_back({urcl::token::reg, "", "", {0}, "", "", i});
         } else if ((line[i] == 'S' || line[i] == 's') && (line[i + 1] == 'P' || line[i + 1] == 'p')) {
-            result.push_back({urcl::token::reg, line.substr(i, 2), "", -1, "", "", i});
+            result.push_back({urcl::token::reg, line.substr(i, 2), "", {-1}, "", "", i});
             inConstruct = false;
             ++i;
         } else if ((line[i] == 'P' || line[i] == 'p') && (line[i + 1] == 'C' || line[i + 1] == 'c')) {
-            result.push_back({urcl::token::reg, line.substr(i, 2), "", -2, "", "", i});
+            result.push_back({urcl::token::reg, line.substr(i, 2), "", {-2}, "", "", i});
             inConstruct = false;
             ++i;
         } else if (line[i] == 'M' || line[i] == 'm' || line[i] == '#') {
-            result.push_back({urcl::token::mem, "", "", 0, "", "", i});
+            result.push_back({urcl::token::mem, "", "", {0}, "", "", i});
         } else if (std::isdigit(line[i]) || line[i] == '+' || line[i] == '-') {
-            result.push_back({urcl::token::literal, "", "", 0, "", "", i});
+            result.push_back({urcl::token::literal, "", "", {0}, "", "", i});
         } else if (line[i] == '%') {
-            result.push_back({urcl::token::port, "", "", 0, "", "", i});
+            result.push_back({urcl::token::port, "", "", {0}, "", "", i});
             inInst = true;
         } else if (line[i] == '~') {
-            result.push_back({urcl::token::relative, "", "", 0, "", "", i});
+            result.push_back({urcl::token::relative, "", "", {0}, "", "", i});
         } else if (config.useUir && !dw && line[i] == '[') {
-            result.push_back({urcl::token::uir, line.substr(i, 1), "", 0, "", "", i});
+            result.push_back({urcl::token::uir, line.substr(i, 1), "", {0}, "", "", i});
             inConstruct = false;
             if (inUir) result.back().parse_error = "Nested UIR values are not allowed";
             inUir = true;
         } else if (config.useUir && !dw && line[i] == ']') {
-            result.push_back({urcl::token::uir, line.substr(i, 1), "", 0, "", "", i});
+            result.push_back({urcl::token::uir, line.substr(i, 1), "", {0}, "", "", i});
             inConstruct = false;
             if (!inUir) result.back().parse_error = "UIR value closed before it was opened";
             inUir = false;
         } else if (line[i] == '[' || line[i] == ']') {
-            result.push_back({urcl::token::bracket, line.substr(i, 1), "", 0, "", "", i});
+            result.push_back({urcl::token::bracket, line.substr(i, 1), "", {0}, "", "", i});
             inConstruct = false;
         } else if (line[i] == '@') {
-            result.push_back({urcl::token::constant, "", "", 0, "", "", i});
+            result.push_back({urcl::token::constant, "", "", {0}, "", "", i});
         } else if (line[i] == '"') {
-            result.push_back({urcl::token::string, "", "", 0, "", "", i});
+            result.push_back({urcl::token::string, "", "", {0}, "", "", i});
             inStr = true;
         } else if (line[i] == '\'') {
-            result.push_back({urcl::token::character, "", "", 0, "", "", i});
+            result.push_back({urcl::token::character, "", "", {0}, "", "", i});
             inChar = true;
         } else if ((line[i] == '>' || line[i] == '<' || line[i] == '=') && line[i + 1] == '=') {
-            result.push_back({urcl::token::comparison, line.substr(i, 2), "", 0, "", "", i});
+            result.push_back({urcl::token::comparison, line.substr(i, 2), "", {0}, "", "", i});
             inConstruct = false;
             ++i;
         } else {
-            result.push_back({urcl::token::name, "", "", 0, "", "", i});
+            result.push_back({urcl::token::name, "", "", {0}, "", "", i});
             inName = true;
         }
     }
@@ -1029,7 +1027,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
             // Iterate over source to find the current subobject id
             urcl::object_id nextObjId = 1;
             urcl::object_id currentObjId = 0;
-            for (int i = 0; i <= row; ++i) {
+            for (unsigned int i = 0; i <= row; ++i) {
                 const std::vector<urcl::token>& line = this->code[i];
                 for (const urcl::token& token : line) {
                     if (token.type == urcl::token::comment) continue;
@@ -1080,7 +1078,7 @@ std::vector<lsp::CompletionItem> urcl::source::getCompletion(const lsp::Position
                     }
                 }
             }
-            for (const std::pair<std::string, std::pair<std::filesystem::path, urcl::line_number>>& def : definesDefs) {
+            for (const std::pair<const std::string, std::pair<std::filesystem::path, urcl::line_number>>& def : definesDefs) {
                 if (def.first.starts_with(token.original)) {
                     if (token.original.at(0) == '@') {
                         result.emplace_back(def.first.substr(1));
@@ -1317,7 +1315,7 @@ std::vector<lsp::Location> urcl::source::getReferences(const lsp::Position& posi
     }
     if (token.type == urcl::token::label) return result;
 
-    for (const std::pair<std::filesystem::path, urcl::source>& include : includes) {
+    for (const std::pair<const std::filesystem::path, urcl::source>& include : includes) {
         lsp::DocumentUri newUri = lsp::FileUri::fromPath(include.first.string());
         const urcl::source& included = include.second;
         for (unsigned int j = 0; j < included.code.size(); ++j) {

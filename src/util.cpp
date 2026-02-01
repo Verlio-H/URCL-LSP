@@ -9,7 +9,7 @@
 
 size_t util::utf8len(const char* str) {
     size_t len = 0;
-    for (size_t i = 0; *str != 0; ++len) {
+    for (; *str != 0; ++len) {
         int v01 = ((*str & 0x80) >> 7) & ((*str & 0x40) >> 6);
         int v2 = (*str & 0x20) >> 5;
         int v3 = (*str & 0x10) >> 4;
@@ -188,7 +188,6 @@ std::string util::divideBits(uint32_t bits, uint32_t divisor) {
 std::string util::intHover(int64_t numb, uint32_t bits, bool iris) {
     std::string result;
     if (numb <= 0x10FFFF && numb >= 32 && numb != '\'') {
-        char buf[5]{};
         result = "\'" + util::to_utf8(numb) + "\'\\\n";
     } else if (numb < 32 || numb == '\'') {
         switch (numb) {

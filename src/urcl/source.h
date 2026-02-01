@@ -54,7 +54,7 @@ namespace urcl {
 
             static int iFindNthOperand(const std::vector<urcl::token>& code, unsigned int operand);
             static const token *findNthOperand(const std::vector<token>& code, unsigned int operand);
-            static int columnToIdx(const std::vector<urcl::token>& line, unsigned int column);
+            static size_t columnToIdx(const std::vector<urcl::token>& line, unsigned int column);
             static unsigned int idxToColumn(const std::vector<urcl::token>& line, unsigned int idx);
             
             bool tokenIsImmediate(const urcl::token& token, const urcl::source& original) const;
